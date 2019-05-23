@@ -89,8 +89,11 @@ set(sierrabreezeenhanced_config_PART_FORMS
 
 ki18n_wrap_ui(sierrabreezeenhanced_config_PART_FORMS_HEADERS ${sierrabreezeenhanced_config_PART_FORMS})
 
+qt5_add_resources(nomad_ASSETS ${CMAKE_CURRENT_SOURCE_DIR}/assets.qrc)
+
 ### build library
 add_library(sierrabreezeenhanced MODULE
+    ${nomad_ASSETS}
     ${sierrabreezeenhanced_SRCS}
     ${sierrabreezeenhanced_config_SRCS}
     ${sierrabreezeenhanced_config_PART_FORMS_HEADERS})
@@ -120,5 +123,6 @@ endif()
 
 install(TARGETS sierrabreezeenhanced DESTINATION ${PLUGIN_INSTALL_DIR}/org.kde.kdecoration2)
 install(FILES config/sierrabreezeenhancedconfig.desktop DESTINATION  ${SERVICES_INSTALL_DIR})
+#install(FILES assets/* DESTINATION "~/.config/nomad/decoration")
 # install(TARGETS breezedecoration DESTINATION ${PLUGIN_INSTALL_DIR}/org.kde.kdecoration2)
 # install(FILES config/breezedecorationconfig.desktop DESTINATION  ${SERVICES_INSTALL_DIR})
