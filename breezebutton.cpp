@@ -839,24 +839,29 @@ void Button::drawIconAdwaitaStyle( QPainter *painter ) const
 
     // render mark
     auto d = qobject_cast<Decoration*>( decoration() );
-    const QColor backgroundColor(d->client().data()->palette().color(QPalette::Background));
-    const QColor foregroundColor(d->client().data()->palette().color(QPalette::Foreground) );
+    const QColor backgroundColor = (d->client().data()->palette().color(QPalette::Background));
+    const QColor foregroundColor= d->fontColor();
 
     if(foregroundColor.isValid() )
     {
         // setup painter
-        QPen pen(foregroundColor);
-        pen.setJoinStyle( Qt::MiterJoin );
-        pen.setWidthF( 2.0*qMax((qreal)1.0, 20/width ) );
 
-        painter->setPen( pen );
-        painter->setBrush( Qt::NoBrush );
+        const auto getPen = [=](const QColor &color) -> QPen
+        {
+            QPen pen(color);
+            pen.setJoinStyle( Qt::MiterJoin );
+            pen.setWidthF( 2.0*qMax((qreal)1.0, 20/width ) );
+            return pen;
+        };
 
         switch( type() )
         {
 
             case DecorationButtonType::Close:
             {
+                painter->setPen(getPen(isHovered() ? "#ee6191" : foregroundColor));
+                painter->setBrush( Qt::NoBrush );
+
                 painter->drawLine(5,5,13,13 );
                 painter->drawLine( 13, 5, 5, 13 );
                 break;
@@ -866,7 +871,8 @@ void Button::drawIconAdwaitaStyle( QPainter *painter ) const
             {
 
                 painter->setPen( Qt::NoPen );
-                painter->setBrush(foregroundColor);
+                const QColor color = isHovered() ? "#41a4f3" : foregroundColor;
+                painter->setBrush(color);
 
                 painter->drawRoundRect(QRect(0,0,18,18),30,30);
 
@@ -885,14 +891,15 @@ void Button::drawIconAdwaitaStyle( QPainter *painter ) const
                 path2.lineTo(13, 11);
 
 
-                painter->fillPath(path1, QBrush(backgroundColor));
-                painter->fillPath(path2, QBrush(backgroundColor));
+                painter->fillPath(path1, QBrush(d->titleBarColor()));
+                painter->fillPath(path2, QBrush(d->titleBarColor()));
 
 
                 break;
             }
             case DecorationButtonType::Minimize:
             {
+                painter->setPen(getPen(isHovered() ?  "#4ccede" : foregroundColor));
                 painter->drawLine(0,13,13,13 );
                 break;
             }
