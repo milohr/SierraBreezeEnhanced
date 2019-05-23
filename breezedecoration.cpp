@@ -556,7 +556,7 @@ namespace Breeze
 
             QFont f; f.fromString(m_internalSettings->titleBarFont());
             QFontMetrics fm(f);
-            top += qMax(fm.height(), buttonHeight() );
+            top += qMax(fm.height(), buttonHeight()+ 10 );
 
             // padding below
             // extra pixel is used for the active window outline
@@ -649,7 +649,7 @@ namespace Breeze
 
             // padding
             const int vPadding = isTopEdge() ? 0 : s->smallSpacing()*Metrics::TitleBar_TopMargin;
-            const int hPadding = s->smallSpacing()*Metrics::TitleBar_SideMargin;
+            const int hPadding = s->smallSpacing()*Metrics::TitleBar_SideMargin + 10;
             if( isRightEdge() )
             {
 

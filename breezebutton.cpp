@@ -137,7 +137,6 @@ void Button::paint(QPainter *painter, const QRect &repaintRegion)
     // menu button
     if (type() == DecorationButtonType::Menu)
     {
-
         const QRectF iconRect( geometry().topLeft(), 0.8*m_iconSize );
         const qreal width( m_iconSize.width() );
         painter->translate( 0.1*width, 0.1*width );
@@ -839,175 +838,169 @@ void Button::drawIconAdwaitaStyle( QPainter *painter ) const
 
     // render mark
     auto d = qobject_cast<Decoration*>( decoration() );
-    const QColor backgroundColor = (d->client().data()->palette().color(QPalette::Background));
-    const QColor foregroundColor= d->fontColor();
-
-    if(foregroundColor.isValid() )
+    const QColor backgroundColor = d->titleBarColor();
+    const QColor foregroundColor = d->fontColor();
+    const auto getPen = [=](const QColor &color) -> QPen
     {
-        // setup painter
+        QPen pen(color);
+        pen.setJoinStyle( Qt::MiterJoin );
+        pen.setWidthF( 2.0*qMax((qreal)1.0, 20/width ) );
+        return pen;
+    };
 
-        const auto getPen = [=](const QColor &color) -> QPen
+    switch( type() )
+    {
+
+        case DecorationButtonType::Close:
         {
-            QPen pen(color);
-            pen.setJoinStyle( Qt::MiterJoin );
-            pen.setWidthF( 2.0*qMax((qreal)1.0, 20/width ) );
-            return pen;
-        };
+            //                painter->setPen( Qt::NoPen );
+            //                painter->setBrush(isHovered() ? "#41a4f3" : foregroundColor);
 
-        switch( type() )
+            //                painter->drawRoundRect(QRect(0,0,18,18),30,30);
+
+            painter->setPen(getPen(isHovered() ? "#ee6191" : foregroundColor));
+            painter->drawLine(4,4,14,14 );
+            painter->drawLine( 14, 4, 4, 14 );
+            break;
+        }
+
+        case DecorationButtonType::Maximize:
         {
 
-            case DecorationButtonType::Close:
-            {
-                painter->setPen(getPen(isHovered() ? "#ee6191" : foregroundColor));
-                painter->setBrush( Qt::NoBrush );
+            painter->setPen( Qt::NoPen );
+            painter->setBrush(isHovered() ? "#41a4f3" : foregroundColor);
 
-                painter->drawLine(5,5,13,13 );
-                painter->drawLine( 13, 5, 5, 13 );
-                break;
+            painter->drawRoundRect(QRect(0,0,18,18),30,30);
+
+            painter->setBrush( Qt::NoBrush );
+            painter->setPen( Qt::NoPen );
+
+            // two triangles
+            QPainterPath path1, path2;
+
+            path1.moveTo(5, 13);
+            path1.lineTo(11, 13);
+            path1.lineTo(5, 7);
+
+            path2.moveTo(13, 5);
+            path2.lineTo(7, 5);
+            path2.lineTo(13, 11);
+
+
+            painter->fillPath(path1, QBrush(backgroundColor));
+            painter->fillPath(path2, QBrush(backgroundColor));
+
+
+            break;
+        }
+        case DecorationButtonType::Minimize:
+        {
+            painter->setPen(getPen(isHovered() ?  "#4ccede" : foregroundColor));
+            painter->drawLine(2,16,16,16 );
+            break;
+        }
+
+        case DecorationButtonType::OnAllDesktops:
+        {
+            painter->setPen( Qt::NoPen );
+            painter->setBrush( foregroundColor );
+
+            QPointF c(static_cast<qreal>(9), static_cast<qreal>(9));
+            if( isChecked()) {
+                painter->drawEllipse( c, 9.0, 9.0 );
+                painter->setBrush( backgroundColor );
+                painter->drawEllipse( c, 2.0, 2.0 );
             }
+            else
+                painter->drawEllipse( c, 4.0, 4.0 );
+            break;
+        }
 
-            case DecorationButtonType::Maximize:
+        case DecorationButtonType::Shade:
+        {
+
+            if (isChecked())
             {
 
-                painter->setPen( Qt::NoPen );
-                const QColor color = isHovered() ? "#41a4f3" : foregroundColor;
-                painter->setBrush(color);
-
-                painter->drawRoundRect(QRect(0,0,18,18),30,30);
-
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( Qt::NoPen );
-
-                // two triangles
-                QPainterPath path1, path2;
-
-                path1.moveTo(5, 13);
-                path1.lineTo(11, 13);
-                path1.lineTo(5, 7);
-
-                path2.moveTo(13, 5);
-                path2.lineTo(7, 5);
-                path2.lineTo(13, 11);
-
-
-                painter->fillPath(path1, QBrush(d->titleBarColor()));
-                painter->fillPath(path2, QBrush(d->titleBarColor()));
-
-
-                break;
-            }
-            case DecorationButtonType::Minimize:
-            {
-                painter->setPen(getPen(isHovered() ?  "#4ccede" : foregroundColor));
-                painter->drawLine(0,13,13,13 );
-                break;
-            }
-
-            case DecorationButtonType::OnAllDesktops:
-            {
-                painter->setPen( Qt::NoPen );
-                painter->setBrush( foregroundColor );
-
-                QPointF c(static_cast<qreal>(9), static_cast<qreal>(9));
-                if( isChecked()) {
-                    painter->drawEllipse( c, 9.0, 9.0 );
-                    painter->setBrush( backgroundColor );
-                    painter->drawEllipse( c, 2.0, 2.0 );
-                }
-                else
-                    painter->drawEllipse( c, 4.0, 4.0 );
-                break;
-            }
-
-            case DecorationButtonType::Shade:
-            {
-
-                if (isChecked())
-                {
-
-                    painter->drawLine( 5, 6, 13, 6 );
-                    QPainterPath path;
-                    path.moveTo(9, 13);
-                    path.lineTo(4, 9);
-                    path.lineTo(14, 9);
-                    painter->fillPath(path, QBrush(foregroundColor));
-
-
-                } else {
-
-                    painter->drawLine( 5, 6, 13, 6 );
-                    QPainterPath path;
-                    path.moveTo(9, 9);
-                    path.lineTo(4, 13);
-                    path.lineTo(14, 13);
-                    painter->fillPath(path, QBrush(foregroundColor));
-
-                }
-
-                break;
-
-            }
-
-            case DecorationButtonType::KeepBelow:
-            {
-
-                painter->setPen( Qt::NoPen );
-                painter->setBrush( foregroundColor );
-
+                painter->drawLine( 5, 6, 13, 6 );
                 QPainterPath path;
-                path.moveTo(9, 14);
-                path.lineTo(4, 6);
-                path.lineTo(14, 6);
+                path.moveTo(9, 13);
+                path.lineTo(4, 9);
+                path.lineTo(14, 9);
                 painter->fillPath(path, QBrush(foregroundColor));
 
-                break;
 
-            }
+            } else {
 
-            case DecorationButtonType::KeepAbove:
-            {
-
-                painter->setPen( Qt::NoPen );
-                painter->setBrush( foregroundColor );
-
+                painter->drawLine( 5, 6, 13, 6 );
                 QPainterPath path;
-                path.moveTo(9, 5);
+                path.moveTo(9, 9);
                 path.lineTo(4, 13);
                 path.lineTo(14, 13);
                 painter->fillPath(path, QBrush(foregroundColor));
 
-                break;
             }
 
-
-            case DecorationButtonType::ApplicationMenu:
-            {
-                painter->drawLine( QPointF( 3.5, 5 ), QPointF( 14.5, 5 ) );
-                painter->drawLine( QPointF( 3.5, 9 ), QPointF( 14.5, 9 ) );
-                painter->drawLine( QPointF( 3.5, 13 ), QPointF( 14.5, 13 ) );
-                break;
-            }
-
-            case DecorationButtonType::ContextHelp:
-            {
-                QPainterPath path;
-                path.moveTo( 5, 6 );
-                path.arcTo( QRectF( 5, 3.5, 8, 5 ), 180, -180 );
-                path.cubicTo( QPointF(12.5, 9.5), QPointF( 9, 7.5 ), QPointF( 9, 11.5 ) );
-                painter->drawPath( path );
-
-                painter->drawPoint( 9, 15 );
-
-                break;
-            }
-
-            default: break;
+            break;
 
         }
 
-    }
+        case DecorationButtonType::KeepBelow:
+        {
 
+            painter->setPen( Qt::NoPen );
+            painter->setBrush( foregroundColor );
+
+            QPainterPath path;
+            path.moveTo(9, 14);
+            path.lineTo(4, 6);
+            path.lineTo(14, 6);
+            painter->fillPath(path, QBrush(foregroundColor));
+
+            break;
+
+        }
+
+        case DecorationButtonType::KeepAbove:
+        {
+
+            painter->setPen( Qt::NoPen );
+            painter->setBrush( foregroundColor );
+
+            QPainterPath path;
+            path.moveTo(9, 5);
+            path.lineTo(4, 13);
+            path.lineTo(14, 13);
+            painter->fillPath(path, QBrush(foregroundColor));
+
+            break;
+        }
+
+
+        case DecorationButtonType::ApplicationMenu:
+        {
+            painter->drawLine( QPointF( 3.5, 5 ), QPointF( 14.5, 5 ) );
+            painter->drawLine( QPointF( 3.5, 9 ), QPointF( 14.5, 9 ) );
+            painter->drawLine( QPointF( 3.5, 13 ), QPointF( 14.5, 13 ) );
+            break;
+        }
+
+        case DecorationButtonType::ContextHelp:
+        {
+            QPainterPath path;
+            path.moveTo( 5, 6 );
+            path.arcTo( QRectF( 5, 3.5, 8, 5 ), 180, -180 );
+            path.cubicTo( QPointF(12.5, 9.5), QPointF( 9, 7.5 ), QPointF( 9, 11.5 ) );
+            painter->drawPath( path );
+
+            painter->drawPoint( 9, 15 );
+
+            break;
+        }
+
+        default: break;
+
+    }
 }
 
 //__________________________________________________________________
