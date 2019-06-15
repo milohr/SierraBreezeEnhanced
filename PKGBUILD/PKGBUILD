@@ -1,0 +1,36 @@
+pkgname=maui-deco-git
+pkgver=r317.5081063
+pkgrel=1
+pkgdesc='Maui Window Decoration'
+arch=(x86_64 i686)
+url="https://vvave.kde.org/"
+license=(GPL3)
+depends=(kwin)
+makedepends=(git cmake extra-cmake-modules)
+provides=(maui-deco)
+conflicts=(maui-deco)
+source=("${pkgname}::git+https://gitlab.com/nitrux/nx-desktop/maui-deco")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "$pkgname"
+  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+  
+   cd ${srcdir}/${_gitname}
+  
+   mkdir build && cd build
+   cmake ..  \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DKDE_INSTALL_LIBDIR=lib \
+            -DBUILD_TESTING=OFF \
+            -DKDE_INSTALL_USE_QT_SYS_PATHS=ON
+
+}
+
+package() {   
+   make -C ${srcdir}/${_gitname}/build DESTDIR="$pkgdir" install        
+}

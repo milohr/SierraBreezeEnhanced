@@ -142,20 +142,9 @@ void Button::paint(QPainter *painter, const QRect &repaintRegion)
         painter->translate( 0.1*width, 0.1*width );
         decoration()->client().data()->icon().paint(painter, iconRect.toRect());
 
-    } else {
+    } else
+        drawIconMauiStyle( painter );
 
-        auto d = qobject_cast<Decoration*>( decoration() );
-
-        if ( d && d->internalSettings()->buttonStyle() == 3 )
-            drawIconBreezeStyle( painter );
-        else if ( d && d->internalSettings()->buttonStyle() == 4 )
-            drawIconAdwaitaStyle( painter );
-        else if ( d && ( d->internalSettings()->buttonStyle() == 5 || d->internalSettings()->buttonStyle() == 6 || d->internalSettings()->buttonStyle() == 7 ) )
-            drawIconDarkAuroraeStyle( painter );
-        else
-            drawIcon( painter );
-
-    }
 
     painter->restore();
 
@@ -810,7 +799,7 @@ void Button::drawIconBreezeStyle( QPainter *painter ) const
 }
 
 //__________________________________________________________________
-void Button::drawIconAdwaitaStyle( QPainter *painter ) const
+void Button::drawIconMauiStyle( QPainter *painter ) const
 {
 
     painter->setRenderHints( QPainter::Antialiasing );
