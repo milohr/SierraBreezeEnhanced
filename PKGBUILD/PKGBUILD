@@ -1,5 +1,5 @@
 pkgname=maui-deco-git
-pkgver=r317.5081063
+pkgver=r60.fbfcece
 pkgrel=1
 pkgdesc='Maui Window Decoration'
 arch=(x86_64 i686)
@@ -19,18 +19,17 @@ pkgver() {
 
 build() {
   
-   cd ${srcdir}/${_gitname}
-  
-   mkdir build && cd build
-   cmake ..  \
+   cd "$pkgname"
+   cmake  \
             -DCMAKE_INSTALL_PREFIX=/usr \
             -DCMAKE_BUILD_TYPE=Release \
             -DKDE_INSTALL_LIBDIR=lib \
             -DBUILD_TESTING=OFF \
             -DKDE_INSTALL_USE_QT_SYS_PATHS=ON
-
+    make
 }
 
-package() {   
-   make -C ${srcdir}/${_gitname}/build DESTDIR="$pkgdir" install        
+package() {
+  cd "$pkgname"
+  make DESTDIR="$pkgdir" install
 }
