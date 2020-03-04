@@ -1,16 +1,16 @@
 {
     "KPlugin": {
-        "Description": "Window decoration based on SierraBreeze and BreezeEnhanced styles for the Plasma Desktop",
+        "Description": "Maui window decoration for the Plasma Desktop",
         "EnabledByDefault": true,
-        "Id": "org.kde.sierrabreezeenhanced",
-        "Name": "SierraBreezeEnhanced",
+        "Id": "org.kde.mauideco",
+        "Name": "MauiDeco",
         "ServiceTypes": [
             "org.kde.kdecoration2"
         ]
     },
     "org.kde.kdecoration2": {
         "blur": true,
-        "defaultTheme": "SierraBreezeEnhanced",
+        "defaultTheme": "MauiDeco",
         "kcmodule": true
     }
 }

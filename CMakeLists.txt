@@ -1,5 +1,5 @@
 
-project(sierrabreezeenhanced)
+project(mauideco)
 set(PROJECT_VERSION "0.4.5")
 set(PROJECT_VERSION_MAJOR 0)
 
@@ -60,18 +60,18 @@ add_subdirectory(libbreezecommon)
 
 ################# newt target #################
 ### plugin classes
-set(sierrabreezeenhanced_SRCS
+set(mauideco_SRCS
     breezebutton.cpp
     breezedecoration.cpp
     breezeexceptionlist.cpp
     breezesettingsprovider.cpp
     breezesizegrip.cpp)
 
-kconfig_add_kcfg_files(sierrabreezeenhanced_SRCS breezesettings.kcfgc)
+kconfig_add_kcfg_files(mauideco_SRCS breezesettings.kcfgc)
 
 ### config classes
 ### they are kept separately because they might move in a separate library in the future
-set(sierrabreezeenhanced_config_SRCS
+set(mauideco_config_SRCS
     config/breezeconfigwidget.cpp
     config/breezedetectwidget.cpp
     config/breezeexceptiondialog.cpp
@@ -80,31 +80,31 @@ set(sierrabreezeenhanced_config_SRCS
     config/breezeitemmodel.cpp
 )
 
-set(sierrabreezeenhanced_config_PART_FORMS
+set(mauideco_config_PART_FORMS
    config/ui/breezeconfigurationui.ui
    config/ui/breezedetectwidget.ui
    config/ui/breezeexceptiondialog.ui
    config/ui/breezeexceptionlistwidget.ui
 )
 
-ki18n_wrap_ui(sierrabreezeenhanced_config_PART_FORMS_HEADERS ${sierrabreezeenhanced_config_PART_FORMS})
+ki18n_wrap_ui(mauideco_config_PART_FORMS_HEADERS ${mauideco_config_PART_FORMS})
 
 qt5_add_resources(nomad_ASSETS ${CMAKE_CURRENT_SOURCE_DIR}/assets.qrc)
 
 ### build library
-add_library(sierrabreezeenhanced MODULE
+add_library(mauideco MODULE
     ${nomad_ASSETS}
-    ${sierrabreezeenhanced_SRCS}
-    ${sierrabreezeenhanced_config_SRCS}
-    ${sierrabreezeenhanced_config_PART_FORMS_HEADERS})
+    ${mauideco_SRCS}
+    ${mauideco_config_SRCS}
+    ${mauideco_config_PART_FORMS_HEADERS})
 
-target_link_libraries(sierrabreezeenhanced
+target_link_libraries(mauideco
     PUBLIC
         Qt5::Core
         Qt5::Gui
         Qt5::DBus
     PRIVATE
-        sierrabreezeenhancedcommon5
+        mauidecocommon5
         KDecoration2::KDecoration
         KF5::ConfigCore
         KF5::CoreAddons
@@ -114,15 +114,15 @@ target_link_libraries(sierrabreezeenhanced
         KF5::WindowSystem)
 
 if(BREEZE_HAVE_X11)
-  target_link_libraries(sierrabreezeenhanced
+  target_link_libraries(mauideco
     PUBLIC
       Qt5::X11Extras
       XCB::XCB)
 endif()
 
 
-install(TARGETS sierrabreezeenhanced DESTINATION ${PLUGIN_INSTALL_DIR}/org.kde.kdecoration2)
-install(FILES config/sierrabreezeenhancedconfig.desktop DESTINATION  ${SERVICES_INSTALL_DIR})
+install(TARGETS mauideco DESTINATION ${PLUGIN_INSTALL_DIR}/org.kde.kdecoration2)
+install(FILES config/mauidecoconfig.desktop DESTINATION  ${SERVICES_INSTALL_DIR})
 #install(FILES assets/* DESTINATION "~/.config/nomad/decoration")
 # install(TARGETS breezedecoration DESTINATION ${PLUGIN_INSTALL_DIR}/org.kde.kdecoration2)
 # install(FILES config/breezedecorationconfig.desktop DESTINATION  ${SERVICES_INSTALL_DIR})

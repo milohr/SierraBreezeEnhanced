@@ -82,7 +82,6 @@ namespace Breeze
         //*@name colors
         //@{
         QColor titleBarColor() const;
-        QColor outlineColor() const;
         QColor fontColor() const;
         //@}
 
@@ -97,10 +96,7 @@ namespace Breeze
         inline bool isTopEdge() const;
         inline bool isBottomEdge() const;
 
-        inline bool hideTitleBar() const;
-        inline bool opaqueTitleBar() const;
         inline bool matchColorForTitleBar() const;
-        inline bool drawBackgroundGradient() const;
         //@}
 
         public Q_SLOTS:
@@ -127,10 +123,7 @@ namespace Breeze
 
         //*@name border size
         //@{
-        int borderSize(bool bottom = false) const;
-        inline bool hasBorders() const;
-        inline bool hasNoBorders() const;
-        inline bool hasNoSideBorders() const;
+        int borderSize(bool bottom = false) const;       
         //@}
 
         //*@name size grip
@@ -155,26 +148,10 @@ namespace Breeze
         qreal m_opacity = 0;
 
         QColor m_windowColor;
-
+        QColor m_borderColor;
+        int m_cornerRadius = 4;
+        int m_buttonSpacing = 6;
     };
-
-    bool Decoration::hasBorders() const
-    {
-        if( m_internalSettings && m_internalSettings->mask() & BorderSize ) return m_internalSettings->borderSize() > InternalSettings::BorderNoSides;
-        else return settings()->borderSize() > KDecoration2::BorderSize::NoSides;
-    }
-
-    bool Decoration::hasNoBorders() const
-    {
-        if( m_internalSettings && m_internalSettings->mask() & BorderSize ) return m_internalSettings->borderSize() == InternalSettings::BorderNone;
-        else return settings()->borderSize() == KDecoration2::BorderSize::None;
-    }
-
-    bool Decoration::hasNoSideBorders() const
-    {
-        if( m_internalSettings && m_internalSettings->mask() & BorderSize ) return m_internalSettings->borderSize() == InternalSettings::BorderNoSides;
-        else return settings()->borderSize() == KDecoration2::BorderSize::NoSides;
-    }
 
     bool Decoration::isMaximized() const
     { return client().data()->isMaximized() && !m_internalSettings->drawBorderOnMaximizedWindows(); }
@@ -197,17 +174,10 @@ namespace Breeze
     bool Decoration::isBottomEdge() const
     { return (client().data()->isMaximizedVertically() || client().data()->adjacentScreenEdges().testFlag( Qt::BottomEdge ) ) && !m_internalSettings->drawBorderOnMaximizedWindows(); }
 
-    bool Decoration::hideTitleBar() const
-    { return m_internalSettings->hideTitleBar() && !client().data()->isShaded(); }
-
-    bool Decoration::opaqueTitleBar() const
-    { return m_internalSettings->opaqueTitleBar(); }
 
     bool Decoration::matchColorForTitleBar() const
     { return m_internalSettings->matchColorForTitleBar(); }
 
-    bool Decoration::drawBackgroundGradient() const
-    { return m_internalSettings->drawBackgroundGradient(); }
 }
 
 #endif

@@ -169,8 +169,8 @@ void Button::drawIcon( QPainter *painter ) const
 
     auto d = qobject_cast<Decoration*>( decoration() );
     bool inactiveWindow( d && !d->client().data()->isActive() );
-    bool useActiveButtonStyle( d && d->internalSettings()->buttonStyle() == 1 );
-    bool useInactiveButtonStyle( d && d->internalSettings()->buttonStyle() == 2 );
+    bool useActiveButtonStyle( d);
+    bool useInactiveButtonStyle( d);
     bool isMatchTitleBarColor( d && d->internalSettings()->matchColorForTitleBar() );
 
     const QColor darkSymbolColor( ( inactiveWindow && isMatchTitleBarColor ) ? QColor(81, 102, 107) : QColor(34, 45, 50) );
@@ -196,6 +196,10 @@ void Button::drawIcon( QPainter *painter ) const
             QPen button_pen( button_color );
             button_pen.setJoinStyle( Qt::MiterJoin );
             button_pen.setWidthF( 1.7*qMax((qreal)1.0, 20/width ) );
+
+            painter->setBrush( button_color );
+            painter->setPen( Qt::NoPen );
+            painter->drawEllipse( QRectF( 2, 2, 14, 14 ) );
 
             if ( ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle ) && isHovered() )
             {
@@ -832,8 +836,8 @@ void Button::drawIconMauiStyle( QPainter *painter ) const
     const auto getPen = [=](const QColor &color) -> QPen
     {
         QPen pen(color);
-        pen.setJoinStyle( Qt::MiterJoin );
-        pen.setWidthF( 2.0*qMax((qreal)1.0, 20/width ) );
+        pen.setJoinStyle( Qt::RoundJoin );
+        pen.setWidthF( 1.7*qMax((qreal)1.0, 20/width ));
         return pen;
     };
 
@@ -842,50 +846,57 @@ void Button::drawIconMauiStyle( QPainter *painter ) const
 
         case DecorationButtonType::Close:
         {
-            //                painter->setPen( Qt::NoPen );
-            //                painter->setBrush(isHovered() ? "#41a4f3" : foregroundColor);
+            QColor closeColor = "#f06292";
+            painter->setBrush( QBrush(isHovered() ? backgroundColor : closeColor) );
+            QPen pen(closeColor.darker(150));
+            pen.setJoinStyle( Qt::RoundJoin );
+            painter->setPen(pen);
+            painter->drawEllipse( QRectF( 2, 2, 14, 14 ) );
 
-            //                painter->drawRoundRect(QRect(0,0,18,18),30,30);
-
-            painter->setPen(getPen(isHovered() ? "#ee6191" : foregroundColor));
-            painter->drawLine(4,4,14,14 );
-            painter->drawLine( 14, 4, 4, 14 );
+            painter->setPen(getPen(isHovered() ? closeColor : QColor("white")));
+            painter->drawLine( QPointF( 7, 7 ), QPointF( 11, 11 ) );
+            painter->drawLine( QPointF( 7, 11 ), QPointF( 11, 7 ) );
             break;
         }
 
         case DecorationButtonType::Maximize:
         {
+            QColor maximizeColor = "#42a5f5";
+            painter->setBrush( QBrush(QBrush(isHovered() ? backgroundColor : maximizeColor) ) );
+            QPen pen(maximizeColor.darker(150));
+            pen.setJoinStyle( Qt::RoundJoin );
+            painter->setPen(pen);
+            painter->drawEllipse( QRectF( 2, 2, 14, 14 ) );
 
-            painter->setPen( Qt::NoPen );
-            painter->setBrush(isHovered() ? "#41a4f3" : foregroundColor);
-
-            painter->drawRoundRect(QRect(0,0,18,18),30,30);
-
-            painter->setBrush( Qt::NoBrush );
-            painter->setPen( Qt::NoPen );
-
-            // two triangles
-            QPainterPath path1, path2;
-
-            path1.moveTo(5, 13);
-            path1.lineTo(11, 13);
-            path1.lineTo(5, 7);
-
-            path2.moveTo(13, 5);
-            path2.lineTo(7, 5);
-            path2.lineTo(13, 11);
-
-
-            painter->fillPath(path1, QBrush(backgroundColor));
-            painter->fillPath(path2, QBrush(backgroundColor));
-
-
+            QPainterPath path;
+            path.moveTo (6, 11);
+            path.lineTo (12, 11);
+            path.lineTo (9, 7);
+            path.lineTo (6, 11);
+            auto border = getPen(isHovered() ? maximizeColor : QColor("white"));
+            border.setWidth(1);
+            painter->strokePath(path, border);
+            painter->fillPath (path, QBrush (isHovered() ? maximizeColor : QColor("white")));
             break;
         }
         case DecorationButtonType::Minimize:
         {
-            painter->setPen(getPen(isHovered() ?  "#4ccede" : foregroundColor));
-            painter->drawLine(2,16,16,16 );
+            QColor minimizeColor = "#4dd0e1";
+            painter->setBrush( QBrush(QBrush(isHovered() ? backgroundColor : minimizeColor) ) );
+            QPen pen(minimizeColor.darker(150));
+            pen.setJoinStyle( Qt::RoundJoin );
+            painter->setPen(pen);
+            painter->drawEllipse( QRectF( 2, 2, 14, 14 ) );
+
+            QPainterPath path;
+            path.moveTo (6, 8);
+            path.lineTo (12, 8);
+            path.lineTo (9, 12);
+            path.lineTo (6, 8);
+            auto border = getPen(isHovered() ? minimizeColor : QColor("white"));
+            border.setWidth(1);
+            painter->strokePath(path, border);
+            painter->fillPath (path, QBrush (isHovered() ? minimizeColor : QColor("white")));
             break;
         }
 
@@ -992,447 +1003,6 @@ void Button::drawIconMauiStyle( QPainter *painter ) const
     }
 }
 
-//__________________________________________________________________
-void Button::drawIconDarkAuroraeStyle( QPainter *painter ) const
-{
-
-    painter->setRenderHints( QPainter::Antialiasing );
-
-    /*
-        scale painter so that its window matches QRect( -1, -1, 20, 20 )
-        this makes all further rendering and scaling simpler
-        all further rendering is preformed inside QRect( 0, 0, 18, 18 )
-        */
-    painter->translate( geometry().topLeft() );
-
-    const qreal width( m_iconSize.width() );
-    painter->scale( width/20, width/20 );
-    painter->translate( 1, 1 );
-
-    auto d = qobject_cast<Decoration*>( decoration() );
-    bool inactiveWindow( d && !d->client().data()->isActive() );
-    bool useActiveButtonStyle( d && d->internalSettings()->buttonStyle() == 6 );
-    bool useInactiveButtonStyle( d && d->internalSettings()->buttonStyle() == 7 );
-    bool isMatchTitleBarColor( d && d->internalSettings()->matchColorForTitleBar() );
-
-    const QColor darkSymbolColor( ( inactiveWindow && isMatchTitleBarColor ) ? QColor(81, 102, 107) : QColor(34, 45, 50) );
-    const QColor lightSymbolColor( ( inactiveWindow && isMatchTitleBarColor ) ? QColor(192, 193, 194) : QColor(250, 251, 252) );
-
-    // symbols color
-
-    QColor symbolColor( this->autoColor( inactiveWindow, useActiveButtonStyle, useInactiveButtonStyle, isMatchTitleBarColor, darkSymbolColor, lightSymbolColor ) );
-
-    // symbols pen
-
-    QPen symbol_pen( symbolColor );
-    symbol_pen.setJoinStyle( Qt::MiterJoin );
-    symbol_pen.setWidthF( 1.2*qMax((qreal)1.0, 20/width ) );
-
-    switch( type() )
-    {
-
-        case DecorationButtonType::Close:
-        {
-            const QColor button_color = QColor(242, 80, 86);
-
-            QPen button_pen( button_color );
-            button_pen.setJoinStyle( Qt::MiterJoin );
-            button_pen.setWidthF( 1.7*qMax((qreal)1.0, 20/width ) );
-
-            if ( ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle ) && isHovered() )
-            {
-                // ring
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( button_pen );
-            }
-            else if ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle )
-            {
-                // nothing
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( Qt::NoPen );
-            }
-            else
-            {
-                // filled
-                painter->setBrush( button_color );
-                painter->setPen( Qt::NoPen );
-            }
-            qreal r = static_cast<qreal>(7)
-                    + static_cast<qreal>(2) * m_animation->currentValue().toReal();
-            QPointF c(static_cast<qreal>(9), static_cast<qreal>(9));
-            painter->drawEllipse( c, r, r );
-            painter->setBrush( Qt::NoBrush );
-            if ( isHovered() || ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle )
-            {
-                painter->setPen( symbol_pen );
-                // it's a cross
-                painter->drawLine( QPointF( 5, 5 ), QPointF( 13, 13 ) );
-                painter->drawLine( QPointF( 5, 13 ), QPointF( 13, 5 ) );
-            }
-            break;
-        }
-
-        case DecorationButtonType::Maximize:
-        {
-            const QColor button_color = QColor(19, 209, 61);
-
-            QPen button_pen( button_color );
-            button_pen.setJoinStyle( Qt::MiterJoin );
-            button_pen.setWidthF( 1.7*qMax((qreal)1.0, 20/width ) );
-
-            if ( ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle ) && isHovered() )
-            {
-                // ring
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( button_pen );
-            }
-            else if ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle )
-            {
-                // nothing
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( Qt::NoPen );
-            }
-            else
-            {
-                // filled
-                painter->setBrush( button_color );
-                painter->setPen( Qt::NoPen );
-            }
-            qreal r = static_cast<qreal>(7)
-                    + static_cast<qreal>(2) * m_animation->currentValue().toReal();
-            QPointF c(static_cast<qreal>(9), static_cast<qreal>(9));
-            painter->drawEllipse( c, r, r );
-            painter->setBrush( Qt::NoBrush );
-            if ( isHovered() || ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle )
-            {
-
-                painter->setPen( symbol_pen );
-
-                // solid vs. open rectangle
-                if( isChecked() )
-                {
-                    painter->drawLine( QPointF( 4.5, 6 ), QPointF( 13.5, 6 ) );
-                    painter->drawLine( QPointF( 13.5, 6 ), QPointF( 13.5, 12 ) );
-                    painter->drawLine( QPointF( 4.5, 6 ), QPointF( 4.5, 12 ) );
-                    painter->drawLine( QPointF( 4.5, 12 ), QPointF( 13.5, 12 ) );
-                }
-                else
-                {
-                    painter->drawLine( QPointF( 4.5, 4.5 ), QPointF( 13.5, 4.5 ) );
-                    painter->drawLine( QPointF( 13.5, 4.5 ), QPointF( 13.5, 9 ) );
-                    painter->drawLine( QPointF( 4.5, 9 ), QPointF( 4.5, 13.5 ) );
-                    painter->drawLine( QPointF( 4.5, 13.5 ), QPointF( 13.5, 13.5 ) );
-                }
-
-            }
-            break;
-        }
-
-        case DecorationButtonType::Minimize:
-        {
-            const QColor button_color = QColor(252, 190, 7);
-
-            QPen button_pen( button_color );
-            button_pen.setJoinStyle( Qt::MiterJoin );
-            button_pen.setWidthF( 1.7*qMax((qreal)1.0, 20/width ) );
-
-            if ( ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle ) && isHovered() )
-            {
-                // ring
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( button_pen );
-            }
-            else if ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle )
-            {
-                // nothing
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( Qt::NoPen );
-            }
-            else
-            {
-                // filled
-                painter->setBrush( button_color );
-                painter->setPen( Qt::NoPen );
-            }
-            qreal r = static_cast<qreal>(7)
-                    + static_cast<qreal>(2) * m_animation->currentValue().toReal();
-            QPointF c(static_cast<qreal>(9), static_cast<qreal>(9));
-            painter->drawEllipse( c, r, r );
-            painter->setBrush( Qt::NoBrush );
-            if ( isHovered() || ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle )
-            {
-                painter->setPen( symbol_pen );
-                painter->drawLine( QPointF( 5, 9 ), QPointF( 13, 9 ) );
-            }
-            break;
-        }
-
-        case DecorationButtonType::OnAllDesktops:
-        {
-            const QColor button_color = QColor(125, 209, 200);
-
-            QPen button_pen( button_color );
-            button_pen.setJoinStyle( Qt::MiterJoin );
-            button_pen.setWidthF( 1.7*qMax((qreal)1.0, 20/width ) );
-
-            if ( ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle ) && ( isHovered() || isChecked() ) )
-            {
-                // ring
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( button_pen );
-            }
-            else if ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle )
-            {
-                // nothing
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( Qt::NoPen );
-            }
-            else
-            {
-                // filled
-                painter->setBrush( button_color );
-                painter->setPen( Qt::NoPen );
-            }
-            qreal r = static_cast<qreal>(7)
-                    + static_cast<qreal>(2) * m_animation->currentValue().toReal();
-            QPointF c(static_cast<qreal>(9), static_cast<qreal>(9));
-            painter->drawEllipse( c, r, r );
-            painter->setBrush( Qt::NoBrush );
-            if ( !isChecked() && ( isHovered() || ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle ) )
-            {
-                painter->setPen( symbol_pen );
-
-                painter->drawLine( QPointF( 7, 5 ), QPointF( 15, 5 ) );
-                painter->drawLine( QPointF( 15, 5 ), QPointF( 15, 13 ) );
-                painter->drawLine( QPointF( 7, 5 ), QPointF( 7, 13 ) );
-                painter->drawLine( QPointF( 7, 13 ), QPointF( 15, 13 ) );
-
-                painter->drawLine( QPointF( 3, 5 ), QPointF( 3, 13 ) );
-                painter->drawLine( QPointF( 3, 5 ), QPointF( 4.5, 5 ) );
-                painter->drawLine( QPointF( 3, 13 ), QPointF( 4.5, 13 ) );
-            }
-            else if ( isChecked() && ( isHovered() || ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle ) )
-            {
-                painter->setPen( symbol_pen );
-
-                painter->drawLine( QPointF( 5, 5 ), QPointF( 11, 5 ) );
-                painter->drawLine( QPointF( 11, 5 ), QPointF( 11, 11 ) );
-                painter->drawLine( QPointF( 5, 5 ), QPointF( 5, 11 ) );
-                painter->drawLine( QPointF( 5, 11 ), QPointF( 11, 11 ) );
-
-                painter->drawLine( QPointF( 7, 7 ), QPointF( 13, 7 ) );
-                painter->drawLine( QPointF( 13, 7 ), QPointF( 13, 13 ) );
-                painter->drawLine( QPointF( 7, 7 ), QPointF( 7, 13 ) );
-                painter->drawLine( QPointF( 7, 13 ), QPointF( 13, 13 ) );
-            }
-            break;
-        }
-
-        case DecorationButtonType::Shade:
-        {
-            const QColor button_color = QColor(204, 176, 213);
-
-            QPen button_pen( button_color );
-            button_pen.setJoinStyle( Qt::MiterJoin );
-            button_pen.setWidthF( 1.7*qMax((qreal)1.0, 20/width ) );
-
-            if ( ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle ) && ( isHovered() || isChecked() ) )
-            {
-                // ring
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( button_pen );
-            }
-            else if ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle )
-            {
-                // nothing
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( Qt::NoPen );
-            }
-            else
-            {
-                // filled
-                painter->setBrush( button_color );
-                painter->setPen( Qt::NoPen );
-            }
-            qreal r = static_cast<qreal>(7)
-                    + static_cast<qreal>(2) * m_animation->currentValue().toReal();
-            QPointF c(static_cast<qreal>(9), static_cast<qreal>(9));
-            painter->drawEllipse( c, r, r );
-            painter->setBrush( Qt::NoBrush );
-            if ( isHovered() || isChecked() ||  ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle )
-            {
-                painter->setPen( symbol_pen );
-                painter->drawLine( QPointF( 4, 6 ), QPointF( 14, 6 ) );
-
-                painter->setBrush(QBrush(symbolColor));
-                painter->drawEllipse( QRectF( 8, 10, 2, 2 ) );
-            }
-            break;
-
-        }
-
-        case DecorationButtonType::KeepBelow:
-        {
-            const QColor button_color = QColor(255, 137, 241);
-
-            QPen button_pen( button_color );
-            button_pen.setJoinStyle( Qt::MiterJoin );
-            button_pen.setWidthF( 1.7*qMax((qreal)1.0, 20/width ) );
-
-            if ( ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle ) && ( isHovered() || isChecked() ) )
-            {
-                // ring
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( button_pen );
-            }
-            else if ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle )
-            {
-                // nothing
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( Qt::NoPen );
-            }
-            else
-            {
-                // filled
-                painter->setBrush( button_color );
-                painter->setPen( Qt::NoPen );
-            }
-            qreal r = static_cast<qreal>(7)
-                    + static_cast<qreal>(2) * m_animation->currentValue().toReal();
-            QPointF c(static_cast<qreal>(9), static_cast<qreal>(9));
-            painter->drawEllipse( c, r, r );
-            painter->setBrush( Qt::NoBrush );
-            if ( isHovered() || isChecked() ||  ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle )
-            {
-                painter->setPen( symbol_pen );
-                painter->drawPolyline( QVector<QPointF>{
-                                           QPointF( 4, 7 ),
-                                           QPointF( 9, 12 ),
-                                           QPointF( 14, 7 ) });
-            }
-            break;
-
-        }
-
-        case DecorationButtonType::KeepAbove:
-        {
-            const QColor button_color = QColor(135, 206, 249);
-
-            QPen button_pen( button_color );
-            button_pen.setJoinStyle( Qt::MiterJoin );
-            button_pen.setWidthF( 1.7*qMax((qreal)1.0, 20/width ) );
-
-            if ( ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle ) && ( isHovered() || isChecked() ) )
-            {
-                // ring
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( button_pen );
-            }
-            else if ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle )
-            {
-                // nothing
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( Qt::NoPen );
-            }
-            else
-            {
-                // filled
-                painter->setBrush( button_color );
-                painter->setPen( Qt::NoPen );
-            }
-            qreal r = static_cast<qreal>(7)
-                    + static_cast<qreal>(2) * m_animation->currentValue().toReal();
-            QPointF c(static_cast<qreal>(9), static_cast<qreal>(9));
-            painter->drawEllipse( c, r, r );
-            painter->setBrush( Qt::NoBrush );
-            if ( isHovered() || isChecked() ||  ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle )
-            {
-                painter->setPen( symbol_pen );
-                painter->drawPolyline( QVector<QPointF>{
-                                           QPointF( 4, 11 ),
-                                           QPointF( 9, 6 ),
-                                           QPointF( 14, 11 )});
-            }
-            break;
-        }
-
-        case DecorationButtonType::ApplicationMenu:
-        {
-            auto d = qobject_cast<Decoration*>( decoration() );
-
-            const QColor matchedTitleBarColor(d->client().data()->palette().color(QPalette::Window));
-
-            const QColor titleBarColor ( isMatchTitleBarColor ? matchedTitleBarColor : d->titleBarColor() );
-
-            QColor menuSymbolColor;
-            if ( qGray(titleBarColor.rgb()) > 128 )
-                menuSymbolColor = darkSymbolColor;
-            else
-                menuSymbolColor = lightSymbolColor;
-
-            QPen menuSymbol_pen( menuSymbolColor );
-            menuSymbol_pen.setJoinStyle( Qt::MiterJoin );
-            menuSymbol_pen.setWidthF( 1.7*qMax((qreal)1.0, 20/width ) );
-
-            painter->setPen( menuSymbol_pen );
-
-            painter->drawLine( QPointF( 3.5, 5 ), QPointF( 14.5, 5 ) );
-            painter->drawLine( QPointF( 3.5, 9 ), QPointF( 14.5, 9 ) );
-            painter->drawLine( QPointF( 3.5, 13 ), QPointF( 14.5, 13 ) );
-
-            break;
-        }
-
-        case DecorationButtonType::ContextHelp:
-        {
-            const QColor button_color = QColor(102, 156, 246);
-
-            QPen button_pen( button_color );
-            button_pen.setJoinStyle( Qt::MiterJoin );
-            button_pen.setWidthF( 1.7*qMax((qreal)1.0, 20/width ) );
-
-            if ( ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle ) && ( isHovered() || isChecked() ) )
-            {
-                // ring
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( button_pen );
-            }
-            else if ( ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle )
-            {
-                // nothing
-                painter->setBrush( Qt::NoBrush );
-                painter->setPen( Qt::NoPen );
-            }
-            else
-            {
-                // filled
-                painter->setBrush( button_color );
-                painter->setPen( Qt::NoPen );
-            }
-            qreal r = static_cast<qreal>(7)
-                    + static_cast<qreal>(2) * m_animation->currentValue().toReal();
-            QPointF c(static_cast<qreal>(9), static_cast<qreal>(9));
-            painter->drawEllipse( c, r, r );
-            painter->setBrush( Qt::NoBrush );
-            if ( isHovered() || isChecked() || ( inactiveWindow && !useActiveButtonStyle ) || useInactiveButtonStyle )
-            {
-                painter->setPen( symbol_pen );
-                int startAngle = 260 * 16;
-                int spanAngle = 280 * 16;
-                painter->drawArc( QRectF( 5, 3, 8, 8), startAngle, spanAngle );
-
-                painter->setBrush(QBrush(symbolColor));
-                painter->drawEllipse( QRectF( 8, 14, 2, 2 ) );
-            }
-            break;
-        }
-
-        default: break;
-
-    }
-}
-
-//__________________________________________________________________
 QColor Button::foregroundColor() const
 {
     auto d = qobject_cast<Decoration*>( decoration() );
@@ -1445,10 +1015,6 @@ QColor Button::foregroundColor() const
         return QColor();
 
     } else if( isPressed() ) {
-
-        return titleBarColor;
-
-    } else if( type() == DecorationButtonType::Close && d->internalSettings()->outlineCloseButton() ) {
 
         return titleBarColor;
 
@@ -1496,18 +1062,12 @@ QColor Button::backgroundColor() const
 
         if( type() == DecorationButtonType::Close )
         {
-            if( d->internalSettings()->outlineCloseButton() )
-            {
-
-                return KColorUtils::mix( d->fontColor(), c->color( ColorGroup::Warning, ColorRole::Foreground ).lighter(), m_opacity );
-
-            } else {
 
                 QColor color( c->color( ColorGroup::Warning, ColorRole::Foreground ).lighter() );
                 color.setAlpha( color.alpha()*m_opacity );
                 return color;
 
-            }
+
 
         } else {
 
@@ -1521,10 +1081,6 @@ QColor Button::backgroundColor() const
 
         if( type() == DecorationButtonType::Close ) return c->color( ColorGroup::Warning, ColorRole::Foreground ).lighter();
         else return d->fontColor();
-
-    } else if( type() == DecorationButtonType::Close && d->internalSettings()->outlineCloseButton() ) {
-
-        return d->fontColor();
 
     } else {
 
@@ -1560,19 +1116,12 @@ QColor Button::autoColor( const bool inactiveWindow, const bool useActiveButtonS
 //________________________________________________________________
 void Button::reconfigure()
 {
-
-    // animation
-    auto d = qobject_cast<Decoration*>(decoration());
-    if( d )  m_animation->setDuration( d->internalSettings()->animationsDuration() );
-
+    m_animation->setDuration( 100 );
 }
 
 //__________________________________________________________________
 void Button::updateAnimationState( bool hovered )
 {
-
-    auto d = qobject_cast<Decoration*>(decoration());
-    if( !(d && d->internalSettings()->animationsEnabled() ) ) return;
 
     QAbstractAnimation::Direction dir = hovered ? QPropertyAnimation::Forward : QPropertyAnimation::Backward;
     if( m_animation->state() == QPropertyAnimation::Running && m_animation->direction() != dir )

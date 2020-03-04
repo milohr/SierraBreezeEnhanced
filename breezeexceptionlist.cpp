@@ -57,12 +57,6 @@ namespace Breeze
             configuration->setMask( exception.mask() );
 
             // propagate all features found in mask to the output configuration
-            if( exception.mask() & BorderSize ) configuration->setBorderSize( exception.borderSize() );
-            configuration->setHideTitleBar( exception.hideTitleBar() );
-            configuration->setOpaqueTitleBar( exception.opaqueTitleBar() );
-            configuration->setOpacityOverride( exception.opacityOverride() );
-            configuration->setDrawBackgroundGradient( exception.drawBackgroundGradient() );
-            configuration->setGradientOverride( exception.gradientOverride() );
             configuration->setMatchColorForTitleBar( exception.matchColorForTitleBar() );
 
             // append to exceptions

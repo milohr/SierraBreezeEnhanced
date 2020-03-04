@@ -43,8 +43,6 @@ namespace Breeze
 
         connect( m_ui.buttonBox->button( QDialogButtonBox::Cancel ), SIGNAL(clicked()), this, SLOT(close()) );
 
-        // store checkboxes from ui into list
-        m_checkboxes.insert( BorderSize, m_ui.borderSizeCheckBox );
 
         // detect window properties
         connect( m_ui.detectDialogButton, SIGNAL(clicked()), SLOT(selectWindowProperties()) );
@@ -52,19 +50,11 @@ namespace Breeze
         // connections
         connect( m_ui.exceptionType, SIGNAL(currentIndexChanged(int)), SLOT(updateChanged()) );
         connect( m_ui.exceptionEditor, SIGNAL(textChanged(QString)), SLOT(updateChanged()) );
-        connect( m_ui.borderSizeComboBox, SIGNAL(currentIndexChanged(int)), SLOT(updateChanged()) );
 
         for( CheckBoxMap::iterator iter = m_checkboxes.begin(); iter != m_checkboxes.end(); ++iter )
         { connect( iter.value(), SIGNAL(clicked()), SLOT(updateChanged()) ); }
 
-        connect( m_ui.hideTitleBar, SIGNAL(clicked()), SLOT(updateChanged()) );
         connect( m_ui.matchColorForTitleBar, SIGNAL(clicked()), SLOT(updateChanged()) );
-        connect( m_ui.drawBackgroundGradient, SIGNAL(clicked()), SLOT(updateChanged()) );
-        m_ui.gradientOverrideLabelSpinBox->setSpecialValueText(tr("None"));
-        connect( m_ui.opacityOverrideLabelSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), [=](int /*i*/){updateChanged();} );
-        connect( m_ui.opaqueTitleBar, SIGNAL(clicked()), SLOT(updateChanged()) );
-        m_ui.opacityOverrideLabelSpinBox->setSpecialValueText(tr("None"));
-        connect( m_ui.opacityOverrideLabelSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), [=](int /*i*/){updateChanged();} );
 
         // hide detection dialog on non X11 platforms
         #if BREEZE_HAVE_X11
@@ -84,13 +74,7 @@ namespace Breeze
         // type
         m_ui.exceptionType->setCurrentIndex(m_exception->exceptionType() );
         m_ui.exceptionEditor->setText( m_exception->exceptionPattern() );
-        m_ui.borderSizeComboBox->setCurrentIndex( m_exception->borderSize() );
-        m_ui.hideTitleBar->setChecked( m_exception->hideTitleBar() );
         m_ui.matchColorForTitleBar->setChecked( m_exception->matchColorForTitleBar() );
-        m_ui.drawBackgroundGradient->setChecked( m_exception->drawBackgroundGradient() );
-        m_ui.gradientOverrideLabelSpinBox->setValue( m_exception->gradientOverride() );
-        m_ui.opaqueTitleBar->setChecked( m_exception->opaqueTitleBar() );
-        m_ui.opacityOverrideLabelSpinBox->setValue( m_exception->opacityOverride() );
 
         // mask
         for( CheckBoxMap::iterator iter = m_checkboxes.begin(); iter != m_checkboxes.end(); ++iter )
@@ -105,13 +89,7 @@ namespace Breeze
     {
         m_exception->setExceptionType( m_ui.exceptionType->currentIndex() );
         m_exception->setExceptionPattern( m_ui.exceptionEditor->text() );
-        m_exception->setBorderSize( m_ui.borderSizeComboBox->currentIndex() );
-        m_exception->setHideTitleBar( m_ui.hideTitleBar->isChecked() );
         m_exception->setMatchColorForTitleBar( m_ui.matchColorForTitleBar->isChecked() );
-        m_exception->setDrawBackgroundGradient( m_ui.drawBackgroundGradient->isChecked() );
-        m_exception->setGradientOverride( m_ui.gradientOverrideLabelSpinBox->value() );
-        m_exception->setOpaqueTitleBar( m_ui.opaqueTitleBar->isChecked() );
-        m_exception->setOpacityOverride( m_ui.opacityOverrideLabelSpinBox->value() );
 
         // mask
         unsigned int mask = None;
@@ -130,13 +108,7 @@ namespace Breeze
         bool modified( false );
         if( m_exception->exceptionType() != m_ui.exceptionType->currentIndex() ) modified = true;
         else if( m_exception->exceptionPattern() != m_ui.exceptionEditor->text() ) modified = true;
-        else if( m_exception->borderSize() != m_ui.borderSizeComboBox->currentIndex() ) modified = true;
-        else if( m_exception->hideTitleBar() != m_ui.hideTitleBar->isChecked() ) modified = true;
         else if( m_exception->matchColorForTitleBar() != m_ui.matchColorForTitleBar->isChecked() ) modified = true;
-        else if( m_exception->drawBackgroundGradient() != m_ui.drawBackgroundGradient->isChecked() ) modified = true;
-        else if( m_exception->gradientOverride() != m_ui.gradientOverrideLabelSpinBox->value() ) modified = true;
-        else if( m_exception->opaqueTitleBar() != m_ui.opaqueTitleBar->isChecked() ) modified = true;
-        else if( m_exception->opacityOverride() != m_ui.opacityOverrideLabelSpinBox->value() ) modified = true;
         else
         {
             // check mask
