@@ -454,28 +454,23 @@ namespace Breeze
         const int bottom = (c->isShaded() || isBottomEdge()) ? 0 : borderSize(true);
 
         int top = 0;
+        QFont f; f.fromString(m_internalSettings->titleBarFont());
+        QFontMetrics fm(f);
+        top += qMax(fm.height(), buttonHeight()+ 10 );
 
+        // padding below
+        const int baseSize = s->smallSpacing();
+        top += baseSize*Metrics::TitleBar_BottomMargin ;
 
-            QFont f; f.fromString(m_internalSettings->titleBarFont());
-            QFontMetrics fm(f);
-            top += qMax(fm.height(), buttonHeight()+ 10 );
-
-            // padding below
-            // extra pixel is used for the active window outline
-            const int baseSize = s->smallSpacing();
-            top += baseSize*Metrics::TitleBar_BottomMargin + 1;
-
-            // padding above
-            top += baseSize*TitleBar_TopMargin;
-
-
+        // padding above
+        top += baseSize*TitleBar_TopMargin;
 
         setBorders(QMargins(1, top, 1, 1));
 
         // extended sizes
         const int extSize = s->largeSpacing();
-        int extSides = 0;
-        int extBottom = 0;
+        int extSides = 10;
+        int extBottom = 10;
 
         setResizeOnlyBorders(QMargins(extSides, 0, extSides, extBottom));
     }
@@ -617,7 +612,7 @@ namespace Breeze
         const auto c = client().data();
         const QColor matchedTitleBarColor(c->palette().color(QPalette::Window));
         QColor titleBarColor = ( matchColorForTitleBar() ? matchedTitleBarColor : this->titleBarColor() );
-        const QRect titleRect(QPoint(0, 0), QSize(size().width(), borderTop()));
+        const QRect titleRect(QPoint(0, 0), QSize(size().width(), borderTop()+1));
 
         if ( !titleRect.intersects(repaintRegion) ) return;
 

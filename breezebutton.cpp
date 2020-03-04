@@ -848,7 +848,7 @@ void Button::drawIconMauiStyle( QPainter *painter ) const
         {
             QColor closeColor = "#f06292";
             painter->setBrush( QBrush(isHovered() ? backgroundColor : closeColor) );
-            QPen pen(closeColor.darker(150));
+            QPen pen(closeColor.darker(130));
             pen.setJoinStyle( Qt::RoundJoin );
             painter->setPen(pen);
             painter->drawEllipse( QRectF( 2, 2, 14, 14 ) );
@@ -863,7 +863,7 @@ void Button::drawIconMauiStyle( QPainter *painter ) const
         {
             QColor maximizeColor = "#42a5f5";
             painter->setBrush( QBrush(QBrush(isHovered() ? backgroundColor : maximizeColor) ) );
-            QPen pen(maximizeColor.darker(150));
+            QPen pen(maximizeColor.darker(130));
             pen.setJoinStyle( Qt::RoundJoin );
             painter->setPen(pen);
             painter->drawEllipse( QRectF( 2, 2, 14, 14 ) );
@@ -883,7 +883,7 @@ void Button::drawIconMauiStyle( QPainter *painter ) const
         {
             QColor minimizeColor = "#4dd0e1";
             painter->setBrush( QBrush(QBrush(isHovered() ? backgroundColor : minimizeColor) ) );
-            QPen pen(minimizeColor.darker(150));
+            QPen pen(minimizeColor.darker(130));
             pen.setJoinStyle( Qt::RoundJoin );
             painter->setPen(pen);
             painter->drawEllipse( QRectF( 2, 2, 14, 14 ) );
