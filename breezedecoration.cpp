@@ -53,528 +53,528 @@
 #include <cmath>
 
 K_PLUGIN_FACTORY_WITH_JSON(
-    BreezeDecoFactory,
-    "breeze.json",
-    registerPlugin<Breeze::Decoration>();
-    registerPlugin<Breeze::Button>(QStringLiteral("button"));
-    registerPlugin<Breeze::ConfigWidget>(QStringLiteral("kcmodule"));
+	BreezeDecoFactory,
+	"breeze.json",
+	registerPlugin<Breeze::Decoration>();
+	registerPlugin<Breeze::Button>(QStringLiteral("button"));
+	registerPlugin<Breeze::ConfigWidget>(QStringLiteral("kcmodule"));
 )
 
 namespace
 {
-    struct ShadowParams {
-        ShadowParams()
-            : offset(QPoint(0, 0))
-            , radius(0)
-            , opacity(0) {}
+	struct ShadowParams {
+		ShadowParams()
+			: offset(QPoint(0, 0))
+			, radius(0)
+			, opacity(0) {}
 
-        ShadowParams(const QPoint &offset, int radius, qreal opacity)
-            : offset(offset)
-            , radius(radius)
-            , opacity(opacity) {}
+		ShadowParams(const QPoint &offset, int radius, qreal opacity)
+			: offset(offset)
+			, radius(radius)
+			, opacity(opacity) {}
 
-        QPoint offset;
-        int radius;
-        qreal opacity;
-    };
+		QPoint offset;
+		int radius;
+		qreal opacity;
+	};
 
-    struct CompositeShadowParams {
-        CompositeShadowParams() = default;
+	struct CompositeShadowParams {
+		CompositeShadowParams() = default;
 
-        CompositeShadowParams(
-                const QPoint &offset,
-                const ShadowParams &shadow1,
-                const ShadowParams &shadow2)
-            : offset(offset)
-            , shadow1(shadow1)
-            , shadow2(shadow2) {}
+		CompositeShadowParams(
+				const QPoint &offset,
+				const ShadowParams &shadow1,
+				const ShadowParams &shadow2)
+			: offset(offset)
+			, shadow1(shadow1)
+			, shadow2(shadow2) {}
 
-        bool isNone() const {
-            return qMax(shadow1.radius, shadow2.radius) == 0;
-        }
+		bool isNone() const {
+			return qMax(shadow1.radius, shadow2.radius) == 0;
+		}
 
-        QPoint offset;
-        ShadowParams shadow1;
-        ShadowParams shadow2;
-    };
+		QPoint offset;
+		ShadowParams shadow1;
+		ShadowParams shadow2;
+	};
 
-    const CompositeShadowParams s_shadowParams[] = {
-        // None
-        CompositeShadowParams(),
-        // Small
-        CompositeShadowParams(
-            QPoint(0, 4),
-            ShadowParams(QPoint(0, 0), 16, 1),
-            ShadowParams(QPoint(0, -2), 8, 0.4)),
-        // Medium
-        CompositeShadowParams(
-            QPoint(0, 8),
-            ShadowParams(QPoint(0, 0), 32, 0.9),
-            ShadowParams(QPoint(0, -4), 16, 0.3)),
-        // Large
-        CompositeShadowParams(
-            QPoint(0, 18),
-            ShadowParams(QPoint(0, 0), 48, 0.8),
-            ShadowParams(QPoint(0, -6), 24, 0.2)),
-        // Very large
-        CompositeShadowParams(
-            QPoint(0, 26),
-            ShadowParams(QPoint(0, 0), 64, 0.7),
-            ShadowParams(QPoint(0, -8), 32, 0.1))
-    };
+	const CompositeShadowParams s_shadowParams[] = {
+		// None
+		CompositeShadowParams(),
+		// Small
+		CompositeShadowParams(
+			QPoint(0, 4),
+			ShadowParams(QPoint(0, 0), 16, 1),
+			ShadowParams(QPoint(0, -2), 8, 0.4)),
+		// Medium
+		CompositeShadowParams(
+			QPoint(0, 8),
+			ShadowParams(QPoint(0, 0), 32, 0.9),
+			ShadowParams(QPoint(0, -4), 16, 0.3)),
+		// Large
+		CompositeShadowParams(
+			QPoint(0, 18),
+			ShadowParams(QPoint(0, 0), 48, 0.8),
+			ShadowParams(QPoint(0, -6), 24, 0.2)),
+		// Very large
+		CompositeShadowParams(
+			QPoint(0, 26),
+			ShadowParams(QPoint(0, 0), 64, 0.7),
+			ShadowParams(QPoint(0, -8), 32, 0.1))
+	};
 
-    inline CompositeShadowParams lookupShadowParams()
-    {
-        return s_shadowParams[1];
-    }
+	inline CompositeShadowParams lookupShadowParams()
+	{
+		return s_shadowParams[1];
+	}
 
-    inline CompositeShadowParams lookupShadowParamsInactiveWindows()
-    {
-        return s_shadowParams[1];
-    }
+	inline CompositeShadowParams lookupShadowParamsInactiveWindows()
+	{
+		return s_shadowParams[1];
+	}
 }
 
 namespace Breeze
 {
 
-    using KDecoration2::ColorRole;
-    using KDecoration2::ColorGroup;
-
-    //________________________________________________________________
-    static int g_sDecoCount = 0;
-    static int g_shadowStrength = 255;
-    static QColor g_shadowColor = Qt::black;
-    static QSharedPointer<KDecoration2::DecorationShadow> g_sShadow;
-    static bool g_specificShadowsInactiveWindows = false;
-    static int g_shadowStrengthInactiveWindows = 255;
-    static QColor g_shadowColorInactiveWindows = Qt::black;
-
-    //________________________________________________________________
-    Decoration::Decoration(QObject *parent, const QVariantList &args)
-        : KDecoration2::Decoration(parent, args)
-        , m_animation( new QPropertyAnimation( this ) )
-        , m_borderColor(QColor("black"))
-    {
-        g_sDecoCount++;
-    }
-
-    //________________________________________________________________
-    Decoration::~Decoration()
-    {
-        g_sDecoCount--;
-        if (g_sDecoCount == 0) {
-            // last deco destroyed, clean up shadow
-            g_sShadow.clear();
-        }
-
-        deleteSizeGrip();
-
-    }
-
-    //________________________________________________________________
-    void Decoration::setOpacity( qreal value )
-    {
-        if( m_opacity == value ) return;
-        m_opacity = value;
-        update();
-
-        if( m_sizeGrip ) m_sizeGrip->update();
-    }
-
-    //________________________________________________________________
-    QColor Decoration::titleBarColor() const
-    {
-
-        auto c = client().data();
-       return c->color( c->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::TitleBar );
-
-    }
-
-     //________________________________________________________________
-    QColor Decoration::fontColor() const
-    {
-        auto c = client().data();
-
-        if ( !matchColorForTitleBar() ) {
-            if( m_animation->state() == QPropertyAnimation::Running ) {
-                return KColorUtils::mix(
-                        c->color( ColorGroup::Inactive, ColorRole::Foreground ),
-                        c->color( ColorGroup::Active, ColorRole::Foreground ),
-                        m_opacity );
-            }
-            else {
-                return  c->color( c->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::Foreground );
-            }
-        }
-        else {
-            const QColor matchedTitleBarColor(c->palette().color(QPalette::Window));
-
-            const QColor darkTextColor( !c->isActive() ? QColor(81, 102, 107) : QColor(34, 45, 50) );
-            const QColor lightTextColor( !c->isActive() ? QColor(192, 193, 194) : QColor(250, 251, 252) );
-
-            if ( qGray(matchedTitleBarColor.rgb()) > 128 )
-                return darkTextColor;
-            else
-                return lightTextColor;
-        }
-    }
-
-    //________________________________________________________________
-    void Decoration::init()
-    {
-        auto c = client().data();
-
-        // active state change animation
-        m_animation->setStartValue( 0 );
-        m_animation->setEndValue( 1.0 );
-        m_animation->setTargetObject( this );
-        m_animation->setPropertyName( "opacity" );
-        m_animation->setEasingCurve( QEasingCurve::InOutQuad );
-
-        reconfigure();
-        updateTitleBar();
-        auto s = settings();
-        connect(s.data(), &KDecoration2::DecorationSettings::borderSizeChanged, this, &Decoration::recalculateBorders);
-
-        // a change in font might cause the borders to change
-        recalculateBorders();
-        connect(s.data(), &KDecoration2::DecorationSettings::spacingChanged, this, &Decoration::recalculateBorders);
-
-        // buttons
-        connect(s.data(), &KDecoration2::DecorationSettings::spacingChanged, this, &Decoration::updateButtonsGeometryDelayed);
-        connect(s.data(), &KDecoration2::DecorationSettings::decorationButtonsLeftChanged, this, &Decoration::updateButtonsGeometryDelayed);
-        connect(s.data(), &KDecoration2::DecorationSettings::decorationButtonsRightChanged, this, &Decoration::updateButtonsGeometryDelayed);
-
-        // full reconfiguration
-        connect(s.data(), &KDecoration2::DecorationSettings::reconfigured, this, &Decoration::reconfigure);
-        connect(s.data(), &KDecoration2::DecorationSettings::reconfigured, SettingsProvider::self(), &SettingsProvider::reconfigure, Qt::UniqueConnection );
-        connect(s.data(), &KDecoration2::DecorationSettings::reconfigured, this, &Decoration::updateButtonsGeometryDelayed);
-
-        connect(c, &KDecoration2::DecoratedClient::adjacentScreenEdgesChanged, this, &Decoration::recalculateBorders);
-        connect(c, &KDecoration2::DecoratedClient::maximizedHorizontallyChanged, this, &Decoration::recalculateBorders);
-        connect(c, &KDecoration2::DecoratedClient::maximizedVerticallyChanged, this, &Decoration::recalculateBorders);
-        connect(c, &KDecoration2::DecoratedClient::shadedChanged, this, &Decoration::recalculateBorders);
-        connect(c, &KDecoration2::DecoratedClient::captionChanged, this,
-            [this]()
-            {
-                // update the caption area
-                update(titleBar());
-            }
-        );
-
-        connect(c, &KDecoration2::DecoratedClient::activeChanged, this, &Decoration::updateAnimationState);
-        connect(c, &KDecoration2::DecoratedClient::activeChanged, this, &Decoration::createShadow);
-        connect(c, &KDecoration2::DecoratedClient::widthChanged, this, &Decoration::updateTitleBar);
-        connect(c, &KDecoration2::DecoratedClient::maximizedChanged, this, &Decoration::updateTitleBar);
-        //connect(c, &KDecoration2::DecoratedClient::maximizedChanged, this, &Decoration::setOpaque);
-
-        connect(c, &KDecoration2::DecoratedClient::widthChanged, this, &Decoration::updateButtonsGeometry);
-        connect(c, &KDecoration2::DecoratedClient::maximizedChanged, this, &Decoration::updateButtonsGeometry);
-        connect(c, &KDecoration2::DecoratedClient::adjacentScreenEdgesChanged, this, &Decoration::updateButtonsGeometry);
-        connect(c, &KDecoration2::DecoratedClient::shadedChanged, this, &Decoration::updateButtonsGeometry);
-
-        createButtons();
-        createShadow();
-    }
-
-    //________________________________________________________________
-    void Decoration::updateTitleBar()
-    {
-        auto s = settings();
-        auto c = client().data();
-        const bool maximized = isMaximized();
-        const int width =  maximized ? c->width() : c->width() - 2*s->largeSpacing()*Metrics::TitleBar_SideMargin;
-        const int height = maximized ? borderTop() : borderTop() - s->smallSpacing()*Metrics::TitleBar_TopMargin;
-        const int x = maximized ? 0 : s->largeSpacing()*Metrics::TitleBar_SideMargin;
-        const int y = maximized ? 0 : s->smallSpacing()*Metrics::TitleBar_TopMargin;
-        setTitleBar(QRect(x, y, width, height));
-    }
-
-    //________________________________________________________________
-    void Decoration::updateAnimationState()
-    {
-            update();
-    }
-
-    //________________________________________________________________
-    void Decoration::updateShadow()
-    {
-        auto c = client().data();
-        CompositeShadowParams params;
-        if ( !g_specificShadowsInactiveWindows || c->isActive() )
-            params = lookupShadowParams();
-        else
-            params = lookupShadowParamsInactiveWindows();
-
-        if ( params.isNone() ) {
-            g_sShadow.clear();
-            setShadow(g_sShadow);
-            return;
-        }
-
-        auto withOpacity = [](const QColor &color, qreal opacity) -> QColor {
-            QColor c(color);
-            c.setAlphaF(opacity);
-            return c;
-        };
-
-        const QSize boxSize = BoxShadowRenderer::calculateMinimumBoxSize(params.shadow1.radius)
-            .expandedTo(BoxShadowRenderer::calculateMinimumBoxSize(params.shadow2.radius));
-
-        BoxShadowRenderer shadowRenderer;
-        shadowRenderer.setBorderRadius(m_cornerRadius + 0.5);
-        shadowRenderer.setBoxSize(boxSize);
-        shadowRenderer.setDevicePixelRatio(1.0); // TODO: Create HiDPI shadows?
-
-        const qreal strength = static_cast<qreal>(g_shadowStrength) / 255.0;
-        shadowRenderer.addShadow(params.shadow1.offset, params.shadow1.radius,
-            withOpacity(g_shadowColor, params.shadow1.opacity * strength));
-        shadowRenderer.addShadow(params.shadow2.offset, params.shadow2.radius,
-            withOpacity(g_shadowColor, params.shadow2.opacity * strength));
-
-        QImage shadowTexture = shadowRenderer.render();
-
-        QPainter painter(&shadowTexture);
-        painter.setRenderHint(QPainter::Antialiasing);
-
-        const QRect outerRect = shadowTexture.rect();
-
-        QRect boxRect(QPoint(0, 0), boxSize);
-        boxRect.moveCenter(outerRect.center());
-
-        // Mask out inner rect.
-        const QMargins padding = QMargins(
-            boxRect.left() - outerRect.left() - Metrics::Shadow_Overlap - params.offset.x(),
-            boxRect.top() - outerRect.top() - Metrics::Shadow_Overlap - params.offset.y(),
-            outerRect.right() - boxRect.right() - Metrics::Shadow_Overlap + params.offset.x(),
-            outerRect.bottom() - boxRect.bottom() - Metrics::Shadow_Overlap + params.offset.y());
-        const QRect innerRect = outerRect - padding;
-
-        if ( !g_specificShadowsInactiveWindows || c->isActive() ) {
-
-            const qreal strength = static_cast<qreal>(g_shadowStrength) / 255.0;
-            shadowRenderer.addShadow(params.shadow1.offset, params.shadow1.radius,
-                withOpacity(g_shadowColor, params.shadow1.opacity * strength));
-            shadowRenderer.addShadow(params.shadow2.offset, params.shadow2.radius,
-                withOpacity(g_shadowColor, params.shadow2.opacity * strength));
-
-            painter.setPen(Qt::NoPen);
-            painter.setBrush(Qt::black);
-            painter.setCompositionMode(QPainter::CompositionMode_DestinationOut);
-            painter.drawRoundedRect(
-                innerRect,
-                m_cornerRadius + 0.5,
-                m_cornerRadius + 0.5);
-
-            // Draw outline.
-            painter.setPen(withOpacity(g_shadowColor, 0.2 * strength));
-            painter.setBrush(Qt::NoBrush);
-            painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-            painter.drawRoundedRect(
-                innerRect,
-                m_cornerRadius - 0.5,
-                m_cornerRadius - 0.5);
-
-        }
-        else {
-
-            const qreal strength = static_cast<qreal>(g_shadowStrengthInactiveWindows) / 255.0;
-            shadowRenderer.addShadow(params.shadow1.offset, params.shadow1.radius,
-                withOpacity(g_shadowColorInactiveWindows, params.shadow1.opacity * strength));
-            shadowRenderer.addShadow(params.shadow2.offset, params.shadow2.radius,
-                withOpacity(g_shadowColorInactiveWindows, params.shadow2.opacity * strength));
-
-            painter.setPen(Qt::NoPen);
-            painter.setBrush(Qt::black);
-            painter.setCompositionMode(QPainter::CompositionMode_DestinationOut);
-            painter.drawRoundedRect(
-                innerRect,
-                m_cornerRadius + 0.5,
-                m_cornerRadius + 0.5);
-
-            // Draw outline.
-            painter.setPen(withOpacity(g_shadowColorInactiveWindows, 0.2 * strength));
-            painter.setBrush(Qt::NoBrush);
-            painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-            painter.drawRoundedRect(
-                innerRect,
-                m_cornerRadius - 0.5,
-                m_cornerRadius - 0.5);
-        }
-        painter.end();
-
-        g_sShadow = QSharedPointer<KDecoration2::DecorationShadow>::create();
-        g_sShadow->setPadding(padding);
-        g_sShadow->setInnerShadowRect(QRect(outerRect.center(), QSize(1, 1)));
-        g_sShadow->setShadow(shadowTexture);
-
-        setShadow(g_sShadow);
-    }
-
-    //________________________________________________________________
-    void Decoration::updateSizeGripVisibility()
-    {
-        auto c = client().data();
-        if( m_sizeGrip )
-        { m_sizeGrip->setVisible( c->isResizeable() && !isMaximized() && !c->isShaded() ); }
-    }
-
-    //________________________________________________________________
-    int Decoration::borderSize(bool bottom) const
-    {
-        return 1;
-    }
-
-    //________________________________________________________________
-    void Decoration::reconfigure()
-    {
-
-        m_internalSettings = SettingsProvider::self()->internalSettings( this );
-
-        // borders
-        recalculateBorders();
-
-        // shadow
-        createShadow();
-
-        // size grip
-        if( m_internalSettings->drawSizeGrip() ) createSizeGrip();
-        else deleteSizeGrip();
-    }
-
-    //________________________________________________________________
-    void Decoration::recalculateBorders()
-    {
-        auto c = client().data();
-        auto s = settings();
-
-        // left, right and bottom borders
-        const int left   = isLeftEdge() ? 0 : borderSize();
-        const int right  = isRightEdge() ? 0 : borderSize();
-        const int bottom = (c->isShaded() || isBottomEdge()) ? 0 : borderSize(true);
-
-        int top = 0;
-        QFont f; f.fromString(m_internalSettings->titleBarFont());
-        QFontMetrics fm(f);
-        top += qMax(fm.height(), buttonHeight()+ 10 );
-
-        // padding below
-        const int baseSize = s->smallSpacing();
-        top += baseSize*Metrics::TitleBar_BottomMargin ;
-
-        // padding above
-        top += baseSize*TitleBar_TopMargin;
-
-        setBorders(QMargins(1, top, 1, 1));
-
-        // extended sizes
-        const int extSize = s->largeSpacing();
-        int extSides = 10;
-        int extBottom = 10;
-
-        setResizeOnlyBorders(QMargins(extSides, 0, extSides, extBottom));
-    }
-
-    //________________________________________________________________
-    void Decoration::createButtons()
-    {
-        m_leftButtons = new KDecoration2::DecorationButtonGroup(KDecoration2::DecorationButtonGroup::Position::Left, this, &Button::create);
-        m_rightButtons = new KDecoration2::DecorationButtonGroup(KDecoration2::DecorationButtonGroup::Position::Right, this, &Button::create);
-        updateButtonsGeometry();
-    }
-
-    //________________________________________________________________
-    void Decoration::updateButtonsGeometryDelayed()
-    { QTimer::singleShot( 0, this, &Decoration::updateButtonsGeometry ); }
-
-    //________________________________________________________________
-    void Decoration::updateButtonsGeometry()
-    {
-        const auto s = settings();
-
-        // adjust button position
-        const int bHeight = captionHeight() + (isTopEdge() ? s->smallSpacing()*Metrics::TitleBar_TopMargin:0);
-        const int bWidth = buttonHeight();
-        const int verticalOffset = (isTopEdge() ? s->smallSpacing()*Metrics::TitleBar_TopMargin:0) + (captionHeight()-buttonHeight())/2;
-        foreach( const QPointer<KDecoration2::DecorationButton>& button, m_leftButtons->buttons() + m_rightButtons->buttons() )
-        {
-            button.data()->setGeometry( QRectF( QPoint( 0, 0 ), QSizeF( bWidth, bHeight ) ) );
-            static_cast<Button*>( button.data() )->setOffset( QPointF( 0, verticalOffset ) );
-            static_cast<Button*>( button.data() )->setIconSize( QSize( bWidth, bWidth ) );
-        }
-
-        // left buttons
-        if( !m_leftButtons->buttons().isEmpty() )
-        {
-
-            // spacing (use our own spacing instead of s->smallSpacing()*Metrics::TitleBar_ButtonSpacing)
-            m_leftButtons->setSpacing(m_buttonSpacing);
-
-            // padding
-            const int vPadding = isTopEdge() ? 0 : s->smallSpacing()*Metrics::TitleBar_TopMargin;
-            const int hPadding = s->smallSpacing()*Metrics::TitleBar_SideMargin;
-            if( isLeftEdge() )
-            {
-                // add offsets on the side buttons, to preserve padding, but satisfy Fitts law
-                auto button = static_cast<Button*>( m_leftButtons->buttons().front().data() );
-                button->setGeometry( QRectF( QPoint( 0, 0 ), QSizeF( bWidth + hPadding, bHeight ) ) );
-                button->setFlag( Button::FlagFirstInList );
-                button->setHorizontalOffset( hPadding );
-
-                m_leftButtons->setPos(QPointF(0, vPadding));
-
-            } else m_leftButtons->setPos(QPointF(hPadding + borderLeft(), vPadding));
-
-        }
-
-        // right buttons
-        if( !m_rightButtons->buttons().isEmpty() )
-        {
-
-            // spacing (use our own spacing instead of s->smallSpacing()*Metrics::TitleBar_ButtonSpacing)
-            m_rightButtons->setSpacing(m_buttonSpacing);
-
-            // padding
-            const int vPadding = isTopEdge() ? 0 : 0;
-            const int hPadding =  4;
-            if( isRightEdge() )
-            {
-
-                auto button = static_cast<Button*>( m_rightButtons->buttons().back().data() );
-                button->setGeometry( QRectF( QPoint( 0, 0 ), QSizeF( bWidth + hPadding, bHeight ) ) );
-                button->setFlag( Button::FlagLastInList );
-
-                m_rightButtons->setPos(QPointF(size().width() - m_rightButtons->geometry().width(), vPadding));
-
-            } else m_rightButtons->setPos(QPointF(size().width() - m_rightButtons->geometry().width() - hPadding - borderRight(), vPadding));
-
-        }
-
-        update();
-
-    }
-
-    //________________________________________________________________
-    void Decoration::paint(QPainter *painter, const QRect &repaintRegion)
-    {
-        // TODO: optimize based on repaintRegion
-        auto c = client().data();
-        auto s = settings();
-
-        const QColor matchedTitleBarColor(c->palette().color(QPalette::Window));
-        const QColor titleBarColor = ( matchColorForTitleBar() ? matchedTitleBarColor : this->titleBarColor() );
-
-        // paint background
-
-            m_windowColor = titleBarColor;
-
-//            painter->fillRect(rect(), Qt::transparent);
-            painter->save();
-            painter->setRenderHint(QPainter::Antialiasing);
-             QPen pen(m_borderColor);
-             pen.setJoinStyle( Qt::RoundJoin );
-             painter->setPen(pen);
-             painter->setBrush( m_windowColor );
+	using KDecoration2::ColorRole;
+	using KDecoration2::ColorGroup;
+
+	//________________________________________________________________
+	static int g_sDecoCount = 0;
+	static int g_shadowStrength = 255;
+	static QColor g_shadowColor = Qt::black;
+	static QSharedPointer<KDecoration2::DecorationShadow> g_sShadow;
+	static bool g_specificShadowsInactiveWindows = false;
+	static int g_shadowStrengthInactiveWindows = 255;
+	static QColor g_shadowColorInactiveWindows = Qt::black;
+
+	//________________________________________________________________
+	Decoration::Decoration(QObject *parent, const QVariantList &args)
+		: KDecoration2::Decoration(parent, args)
+		, m_animation( new QPropertyAnimation( this ) )
+		, m_borderColor(QColor("black"))
+	{
+		g_sDecoCount++;
+	}
+
+	//________________________________________________________________
+	Decoration::~Decoration()
+	{
+		g_sDecoCount--;
+		if (g_sDecoCount == 0) {
+			// last deco destroyed, clean up shadow
+			g_sShadow.clear();
+		}
+
+		deleteSizeGrip();
+
+	}
+
+	//________________________________________________________________
+	void Decoration::setOpacity( qreal value )
+	{
+		if( m_opacity == value ) return;
+		m_opacity = value;
+		update();
+
+		if( m_sizeGrip ) m_sizeGrip->update();
+	}
+
+	//________________________________________________________________
+	QColor Decoration::titleBarColor() const
+	{
+
+		auto c = client().data();
+	   return c->color( c->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::TitleBar );
+
+	}
+
+	 //________________________________________________________________
+	QColor Decoration::fontColor() const
+	{
+		auto c = client().data();
+
+		if ( !matchColorForTitleBar() ) {
+			if( m_animation->state() == QPropertyAnimation::Running ) {
+				return KColorUtils::mix(
+						c->color( ColorGroup::Inactive, ColorRole::Foreground ),
+						c->color( ColorGroup::Active, ColorRole::Foreground ),
+						m_opacity );
+			}
+			else {
+				return  c->color( c->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::Foreground );
+			}
+		}
+		else {
+			const QColor matchedTitleBarColor(c->palette().color(QPalette::Window));
+
+			const QColor darkTextColor( !c->isActive() ? QColor(81, 102, 107) : QColor(34, 45, 50) );
+			const QColor lightTextColor( !c->isActive() ? QColor(192, 193, 194) : QColor(250, 251, 252) );
+
+			if ( qGray(matchedTitleBarColor.rgb()) > 128 )
+				return darkTextColor;
+			else
+				return lightTextColor;
+		}
+	}
+
+	//________________________________________________________________
+	void Decoration::init()
+	{
+		auto c = client().data();
+
+		// active state change animation
+		m_animation->setStartValue( 0 );
+		m_animation->setEndValue( 1.0 );
+		m_animation->setTargetObject( this );
+		m_animation->setPropertyName( "opacity" );
+		m_animation->setEasingCurve( QEasingCurve::InOutQuad );
+
+		reconfigure();
+		updateTitleBar();
+		auto s = settings();
+		connect(s.data(), &KDecoration2::DecorationSettings::borderSizeChanged, this, &Decoration::recalculateBorders);
+
+		// a change in font might cause the borders to change
+		recalculateBorders();
+		connect(s.data(), &KDecoration2::DecorationSettings::spacingChanged, this, &Decoration::recalculateBorders);
+
+		// buttons
+		connect(s.data(), &KDecoration2::DecorationSettings::spacingChanged, this, &Decoration::updateButtonsGeometryDelayed);
+		connect(s.data(), &KDecoration2::DecorationSettings::decorationButtonsLeftChanged, this, &Decoration::updateButtonsGeometryDelayed);
+		connect(s.data(), &KDecoration2::DecorationSettings::decorationButtonsRightChanged, this, &Decoration::updateButtonsGeometryDelayed);
+
+		// full reconfiguration
+		connect(s.data(), &KDecoration2::DecorationSettings::reconfigured, this, &Decoration::reconfigure);
+		connect(s.data(), &KDecoration2::DecorationSettings::reconfigured, SettingsProvider::self(), &SettingsProvider::reconfigure, Qt::UniqueConnection );
+		connect(s.data(), &KDecoration2::DecorationSettings::reconfigured, this, &Decoration::updateButtonsGeometryDelayed);
+
+		connect(c, &KDecoration2::DecoratedClient::adjacentScreenEdgesChanged, this, &Decoration::recalculateBorders);
+		connect(c, &KDecoration2::DecoratedClient::maximizedHorizontallyChanged, this, &Decoration::recalculateBorders);
+		connect(c, &KDecoration2::DecoratedClient::maximizedVerticallyChanged, this, &Decoration::recalculateBorders);
+		connect(c, &KDecoration2::DecoratedClient::shadedChanged, this, &Decoration::recalculateBorders);
+		connect(c, &KDecoration2::DecoratedClient::captionChanged, this,
+			[this]()
+			{
+				// update the caption area
+				update(titleBar());
+			}
+		);
+
+		connect(c, &KDecoration2::DecoratedClient::activeChanged, this, &Decoration::updateAnimationState);
+		connect(c, &KDecoration2::DecoratedClient::activeChanged, this, &Decoration::createShadow);
+		connect(c, &KDecoration2::DecoratedClient::widthChanged, this, &Decoration::updateTitleBar);
+		connect(c, &KDecoration2::DecoratedClient::maximizedChanged, this, &Decoration::updateTitleBar);
+		//connect(c, &KDecoration2::DecoratedClient::maximizedChanged, this, &Decoration::setOpaque);
+
+		connect(c, &KDecoration2::DecoratedClient::widthChanged, this, &Decoration::updateButtonsGeometry);
+		connect(c, &KDecoration2::DecoratedClient::maximizedChanged, this, &Decoration::updateButtonsGeometry);
+		connect(c, &KDecoration2::DecoratedClient::adjacentScreenEdgesChanged, this, &Decoration::updateButtonsGeometry);
+		connect(c, &KDecoration2::DecoratedClient::shadedChanged, this, &Decoration::updateButtonsGeometry);
+
+		createButtons();
+		createShadow();
+	}
+
+	//________________________________________________________________
+	void Decoration::updateTitleBar()
+	{
+		auto s = settings();
+		auto c = client().data();
+		const bool maximized = isMaximized();
+		const int width =  maximized ? c->width() : c->width() - 2*s->largeSpacing()*Metrics::TitleBar_SideMargin;
+		const int height = maximized ? borderTop() : borderTop() - s->smallSpacing()*Metrics::TitleBar_TopMargin;
+		const int x = maximized ? 0 : s->largeSpacing()*Metrics::TitleBar_SideMargin;
+		const int y = maximized ? 0 : s->smallSpacing()*Metrics::TitleBar_TopMargin;
+		setTitleBar(QRect(x, y, width, height));
+	}
+
+	//________________________________________________________________
+	void Decoration::updateAnimationState()
+	{
+			update();
+	}
+
+	//________________________________________________________________
+	void Decoration::updateShadow()
+	{
+		auto c = client().data();
+		CompositeShadowParams params;
+		if ( !g_specificShadowsInactiveWindows || c->isActive() )
+			params = lookupShadowParams();
+		else
+			params = lookupShadowParamsInactiveWindows();
+
+		if ( params.isNone() ) {
+			g_sShadow.clear();
+			setShadow(g_sShadow);
+			return;
+		}
+
+		auto withOpacity = [](const QColor &color, qreal opacity) -> QColor {
+			QColor c(color);
+			c.setAlphaF(opacity);
+			return c;
+		};
+
+		const QSize boxSize = BoxShadowRenderer::calculateMinimumBoxSize(params.shadow1.radius)
+			.expandedTo(BoxShadowRenderer::calculateMinimumBoxSize(params.shadow2.radius));
+
+		BoxShadowRenderer shadowRenderer;
+		shadowRenderer.setBorderRadius(m_cornerRadius + 0.5);
+		shadowRenderer.setBoxSize(boxSize);
+		shadowRenderer.setDevicePixelRatio(1.0); // TODO: Create HiDPI shadows?
+
+		const qreal strength = static_cast<qreal>(g_shadowStrength) / 255.0;
+		shadowRenderer.addShadow(params.shadow1.offset, params.shadow1.radius,
+			withOpacity(g_shadowColor, params.shadow1.opacity * strength));
+		shadowRenderer.addShadow(params.shadow2.offset, params.shadow2.radius,
+			withOpacity(g_shadowColor, params.shadow2.opacity * strength));
+
+		QImage shadowTexture = shadowRenderer.render();
+
+		QPainter painter(&shadowTexture);
+		painter.setRenderHint(QPainter::Antialiasing);
+
+		const QRect outerRect = shadowTexture.rect();
+
+		QRect boxRect(QPoint(0, 0), boxSize);
+		boxRect.moveCenter(outerRect.center());
+
+		// Mask out inner rect.
+		const QMargins padding = QMargins(
+			boxRect.left() - outerRect.left() - Metrics::Shadow_Overlap - params.offset.x(),
+			boxRect.top() - outerRect.top() - Metrics::Shadow_Overlap - params.offset.y(),
+			outerRect.right() - boxRect.right() - Metrics::Shadow_Overlap + params.offset.x(),
+			outerRect.bottom() - boxRect.bottom() - Metrics::Shadow_Overlap + params.offset.y());
+		const QRect innerRect = outerRect - padding;
+
+		if ( !g_specificShadowsInactiveWindows || c->isActive() ) {
+
+			const qreal strength = static_cast<qreal>(g_shadowStrength) / 255.0;
+			shadowRenderer.addShadow(params.shadow1.offset, params.shadow1.radius,
+				withOpacity(g_shadowColor, params.shadow1.opacity * strength));
+			shadowRenderer.addShadow(params.shadow2.offset, params.shadow2.radius,
+				withOpacity(g_shadowColor, params.shadow2.opacity * strength));
+
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(Qt::black);
+			painter.setCompositionMode(QPainter::CompositionMode_DestinationOut);
+			painter.drawRoundedRect(
+				innerRect,
+				m_cornerRadius + 0.5,
+				m_cornerRadius + 0.5);
+
+			// Draw outline.
+			painter.setPen(withOpacity(g_shadowColor, 0.2 * strength));
+			painter.setBrush(Qt::NoBrush);
+			painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+			painter.drawRoundedRect(
+				innerRect,
+				m_cornerRadius - 0.5,
+				m_cornerRadius - 0.5);
+
+		}
+		else {
+
+			const qreal strength = static_cast<qreal>(g_shadowStrengthInactiveWindows) / 255.0;
+			shadowRenderer.addShadow(params.shadow1.offset, params.shadow1.radius,
+				withOpacity(g_shadowColorInactiveWindows, params.shadow1.opacity * strength));
+			shadowRenderer.addShadow(params.shadow2.offset, params.shadow2.radius,
+				withOpacity(g_shadowColorInactiveWindows, params.shadow2.opacity * strength));
+
+			painter.setPen(Qt::NoPen);
+			painter.setBrush(Qt::black);
+			painter.setCompositionMode(QPainter::CompositionMode_DestinationOut);
+			painter.drawRoundedRect(
+				innerRect,
+				m_cornerRadius + 0.5,
+				m_cornerRadius + 0.5);
+
+			// Draw outline.
+			painter.setPen(withOpacity(g_shadowColorInactiveWindows, 0.2 * strength));
+			painter.setBrush(Qt::NoBrush);
+			painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+			painter.drawRoundedRect(
+				innerRect,
+				m_cornerRadius - 0.5,
+				m_cornerRadius - 0.5);
+		}
+		painter.end();
+
+		g_sShadow = QSharedPointer<KDecoration2::DecorationShadow>::create();
+		g_sShadow->setPadding(padding);
+		g_sShadow->setInnerShadowRect(QRect(outerRect.center(), QSize(1, 1)));
+		g_sShadow->setShadow(shadowTexture);
+
+		setShadow(g_sShadow);
+	}
+
+	//________________________________________________________________
+	void Decoration::updateSizeGripVisibility()
+	{
+		auto c = client().data();
+		if( m_sizeGrip )
+		{ m_sizeGrip->setVisible( c->isResizeable() && !isMaximized() && !c->isShaded() ); }
+	}
+
+	//________________________________________________________________
+	int Decoration::borderSize(bool bottom) const
+	{
+		return 1;
+	}
+
+	//________________________________________________________________
+	void Decoration::reconfigure()
+	{
+
+		m_internalSettings = SettingsProvider::self()->internalSettings( this );
+
+		// borders
+		recalculateBorders();
+
+		// shadow
+		createShadow();
+
+		// size grip
+		if( m_internalSettings->drawSizeGrip() ) createSizeGrip();
+		else deleteSizeGrip();
+	}
+
+	//________________________________________________________________
+	void Decoration::recalculateBorders()
+	{
+		auto c = client().data();
+		auto s = settings();
+
+		// left, right and bottom borders
+		const int left   = isLeftEdge() ? 0 : borderSize();
+		const int right  = isRightEdge() ? 0 : borderSize();
+		const int bottom = (c->isShaded() || isBottomEdge()) ? 0 : borderSize(true);
+
+		int top = 0;
+		QFont f; f.fromString(m_internalSettings->titleBarFont());
+		QFontMetrics fm(f);
+		top += qMax(fm.height(), buttonHeight()+ 10 );
+
+		// padding below
+		const int baseSize = s->smallSpacing();
+		top += baseSize*Metrics::TitleBar_BottomMargin ;
+
+		// padding above
+		top += baseSize*TitleBar_TopMargin;
+
+		setBorders(QMargins(1, 1, 1, 1));
+
+		// extended sizes
+		const int extSize = s->largeSpacing();
+		int extSides = 10;
+		int extBottom = 10;
+
+		setResizeOnlyBorders(QMargins(extSides, 0, extSides, extBottom));
+	}
+
+	//________________________________________________________________
+	void Decoration::createButtons()
+	{
+		m_leftButtons = new KDecoration2::DecorationButtonGroup(KDecoration2::DecorationButtonGroup::Position::Left, this, &Button::create);
+		m_rightButtons = new KDecoration2::DecorationButtonGroup(KDecoration2::DecorationButtonGroup::Position::Right, this, &Button::create);
+		updateButtonsGeometry();
+	}
+
+	//________________________________________________________________
+	void Decoration::updateButtonsGeometryDelayed()
+	{ QTimer::singleShot( 0, this, &Decoration::updateButtonsGeometry ); }
+
+	//________________________________________________________________
+	void Decoration::updateButtonsGeometry()
+	{
+		const auto s = settings();
+
+		// adjust button position
+		const int bHeight = captionHeight() + (isTopEdge() ? s->smallSpacing()*Metrics::TitleBar_TopMargin:0);
+		const int bWidth = buttonHeight();
+		const int verticalOffset = (isTopEdge() ? s->smallSpacing()*Metrics::TitleBar_TopMargin:0) + (captionHeight()-buttonHeight())/2;
+		foreach( const QPointer<KDecoration2::DecorationButton>& button, m_leftButtons->buttons() + m_rightButtons->buttons() )
+		{
+			button.data()->setGeometry( QRectF( QPoint( 0, 0 ), QSizeF( bWidth, bHeight ) ) );
+			static_cast<Button*>( button.data() )->setOffset( QPointF( 0, verticalOffset ) );
+			static_cast<Button*>( button.data() )->setIconSize( QSize( bWidth, bWidth ) );
+		}
+
+		// left buttons
+		if( !m_leftButtons->buttons().isEmpty() )
+		{
+
+			// spacing (use our own spacing instead of s->smallSpacing()*Metrics::TitleBar_ButtonSpacing)
+			m_leftButtons->setSpacing(m_buttonSpacing);
+
+			// padding
+			const int vPadding = isTopEdge() ? 0 : s->smallSpacing()*Metrics::TitleBar_TopMargin;
+			const int hPadding = s->smallSpacing()*Metrics::TitleBar_SideMargin;
+			if( isLeftEdge() )
+			{
+				// add offsets on the side buttons, to preserve padding, but satisfy Fitts law
+				auto button = static_cast<Button*>( m_leftButtons->buttons().front().data() );
+				button->setGeometry( QRectF( QPoint( 0, 0 ), QSizeF( bWidth + hPadding, bHeight ) ) );
+				button->setFlag( Button::FlagFirstInList );
+				button->setHorizontalOffset( hPadding );
+
+				m_leftButtons->setPos(QPointF(0, vPadding));
+
+			} else m_leftButtons->setPos(QPointF(hPadding + borderLeft(), vPadding));
+
+		}
+
+		// right buttons
+		if( !m_rightButtons->buttons().isEmpty() )
+		{
+
+			// spacing (use our own spacing instead of s->smallSpacing()*Metrics::TitleBar_ButtonSpacing)
+			m_rightButtons->setSpacing(m_buttonSpacing);
+
+			// padding
+			const int vPadding = isTopEdge() ? 0 : 0;
+			const int hPadding =  4;
+			if( isRightEdge() )
+			{
+
+				auto button = static_cast<Button*>( m_rightButtons->buttons().back().data() );
+				button->setGeometry( QRectF( QPoint( 0, 0 ), QSizeF( bWidth + hPadding, bHeight ) ) );
+				button->setFlag( Button::FlagLastInList );
+
+				m_rightButtons->setPos(QPointF(size().width() - m_rightButtons->geometry().width(), vPadding));
+
+			} else m_rightButtons->setPos(QPointF(size().width() - m_rightButtons->geometry().width() - hPadding - borderRight(), vPadding));
+
+		}
+
+		update();
+
+	}
+
+	//________________________________________________________________
+	void Decoration::paint(QPainter *painter, const QRect &repaintRegion)
+	{
+		// TODO: optimize based on repaintRegion
+		auto c = client().data();
+		auto s = settings();
+
+		const QColor matchedTitleBarColor(c->palette().color(QPalette::Window));
+		const QColor titleBarColor = ( matchColorForTitleBar() ? matchedTitleBarColor : this->titleBarColor() );
+
+		// paint background
+
+			m_windowColor = titleBarColor;
+			painter->save();
+
+			painter->setRenderHint(QPainter::Antialiasing);
+			painter->fillRect(rect(), Qt::transparent);
+//			 QPen pen(m_borderColor);
+//			 pen.setJoinStyle( Qt::RoundJoin );
+//			 painter->setPen(pen);
+//			 painter->setBrush( m_windowColor );
 
 //            if ( !opaqueTitleBar() ) {
 //              int a = m_internalSettings->opacityOverride() > -1 ? m_internalSettings->opacityOverride() : m_internalSettings->backgroundOpacity();
@@ -582,14 +582,13 @@ namespace Breeze
 //              m_windowColor.setAlpha( qRound(static_cast<qreal>(a) * (qreal)2.55) );
 //            }
 
-            // clip away the top part
-            painter->setClipRect(0, borderTop(), size().width(), size().height() - borderTop(), Qt::IntersectClip);
+			// clip away the top part
+//			painter->setClipRect(0, borderTop(), size().width(), size().height() - borderTop(), Qt::IntersectClip);
+			 painter->drawRoundedRect(rect(), m_cornerRadius, m_cornerRadius);
+			painter->restore();
 
-             painter->drawRect( rect() );
-            painter->restore();
 
-
-        paintTitleBar(painter, repaintRegion);
+//		paintTitleBar(painter, repaintRegion);
 
 //        if( hasBorders() && !s->isAlphaChannelSupported() )
 //        {
@@ -604,175 +603,175 @@ namespace Breeze
 //            painter->restore();
 //        }
 
-    }
+	}
 
-    //________________________________________________________________
-    void Decoration::paintTitleBar(QPainter *painter, const QRect &repaintRegion)
-    {
-        const auto c = client().data();
-        const QColor matchedTitleBarColor(c->palette().color(QPalette::Window));
-        QColor titleBarColor = ( matchColorForTitleBar() ? matchedTitleBarColor : this->titleBarColor() );
-        const QRect titleRect(QPoint(0, 0), QSize(size().width(), borderTop()+1));
+	//________________________________________________________________
+	void Decoration::paintTitleBar(QPainter *painter, const QRect &repaintRegion)
+	{
+		const auto c = client().data();
+		const QColor matchedTitleBarColor(c->palette().color(QPalette::Window));
+		QColor titleBarColor = ( matchColorForTitleBar() ? matchedTitleBarColor : this->titleBarColor() );
+		const QRect titleRect(QPoint(0, 0), QSize(size().width(), borderTop()+1));
 
-        if ( !titleRect.intersects(repaintRegion) ) return;
+		if ( !titleRect.intersects(repaintRegion) ) return;
 
-        painter->save();
-        QPen pen(m_borderColor);
-        pen.setJoinStyle( Qt::RoundJoin );
-        painter->setPen(pen);
-        painter->setBrush( titleBarColor );
+		painter->save();
+		QPen pen(m_borderColor);
+		pen.setJoinStyle( Qt::RoundJoin );
+		painter->setPen(pen);
+		painter->setBrush( titleBarColor );
 
-        auto s = settings();
-        if( isMaximized() || !s->isAlphaChannelSupported() )
-        {
-            painter->drawRect(titleRect);
+		auto s = settings();
+		if( isMaximized() || !s->isAlphaChannelSupported() )
+		{
+			painter->drawRect(titleRect);
 
-        } else if( c->isShaded() ) {
+		} else if( c->isShaded() ) {
 
-            painter->drawRoundedRect(titleRect, m_cornerRadius, m_cornerRadius);
+			painter->drawRoundedRect(titleRect, m_cornerRadius, m_cornerRadius);
 
-        } else {
+		} else {
 
 //            painter->setClipRect(titleRect, Qt::IntersectClip);
 
-            // the rect is made a little bit larger to be able to clip away the rounded corners at the bottom and sides
-            painter->drawRoundedRect(titleRect.adjusted(
-                isLeftEdge() ? -m_cornerRadius:0,
-                isTopEdge() ? -m_cornerRadius:0,
-                isRightEdge() ? m_cornerRadius:0,
-                m_cornerRadius),
-                m_cornerRadius, m_cornerRadius);
-        }
+			// the rect is made a little bit larger to be able to clip away the rounded corners at the bottom and sides
+			painter->drawRoundedRect(titleRect.adjusted(
+				isLeftEdge() ? -m_cornerRadius:0,
+				isTopEdge() ? -m_cornerRadius:0,
+				isRightEdge() ? m_cornerRadius:0,
+				m_cornerRadius),
+				m_cornerRadius, m_cornerRadius);
+		}
 
-        painter->restore();
+		painter->restore();
 
-        // draw caption
-        QFont f; f.fromString(m_internalSettings->titleBarFont());
-        // KDE needs this FIXME: Why?
-        QFontDatabase fd; f.setStyleName(fd.styleString(f));
-        painter->setFont(f);
-        painter->setPen( fontColor() );
+		// draw caption
+		QFont f; f.fromString(m_internalSettings->titleBarFont());
+		// KDE needs this FIXME: Why?
+		QFontDatabase fd; f.setStyleName(fd.styleString(f));
+		painter->setFont(f);
+		painter->setPen( fontColor() );
 
-        const auto cR = captionRect();
-        const QString caption = painter->fontMetrics().elidedText(c->caption(), Qt::ElideMiddle, cR.first.width());
-        painter->drawText(cR.first, cR.second | Qt::TextSingleLine, caption);
+		const auto cR = captionRect();
+		const QString caption = painter->fontMetrics().elidedText(c->caption(), Qt::ElideMiddle, cR.first.width());
+		painter->drawText(cR.first, cR.second | Qt::TextSingleLine, caption);
 
-        // draw all buttons
-        m_leftButtons->paint(painter, repaintRegion);
-        m_rightButtons->paint(painter, repaintRegion);
-    }
+		// draw all buttons
+		m_leftButtons->paint(painter, repaintRegion);
+		m_rightButtons->paint(painter, repaintRegion);
+	}
 
-    //________________________________________________________________
-    int Decoration::buttonHeight() const
-    {
-        const int baseSize = settings()->gridUnit();
-        switch( m_internalSettings->buttonSize() )
-        {
-            case InternalSettings::ButtonTiny: return baseSize;
-            case InternalSettings::ButtonSmall: return baseSize*1.5;
-            default:
-            case InternalSettings::ButtonDefault: return baseSize*2;
-            case InternalSettings::ButtonLarge: return baseSize*2.5;
-            case InternalSettings::ButtonVeryLarge: return baseSize*3.5;
-        }
+	//________________________________________________________________
+	int Decoration::buttonHeight() const
+	{
+		const int baseSize = settings()->gridUnit();
+		switch( m_internalSettings->buttonSize() )
+		{
+			case InternalSettings::ButtonTiny: return baseSize;
+			case InternalSettings::ButtonSmall: return baseSize*1.5;
+			default:
+			case InternalSettings::ButtonDefault: return baseSize*2;
+			case InternalSettings::ButtonLarge: return baseSize*2.5;
+			case InternalSettings::ButtonVeryLarge: return baseSize*3.5;
+		}
 
-    }
+	}
 
-    //________________________________________________________________
-    int Decoration::captionHeight() const
-    { return  borderTop() - settings()->smallSpacing()*(Metrics::TitleBar_BottomMargin + Metrics::TitleBar_TopMargin ) - 1; }
+	//________________________________________________________________
+	int Decoration::captionHeight() const
+	{ return  borderTop() - settings()->smallSpacing()*(Metrics::TitleBar_BottomMargin + Metrics::TitleBar_TopMargin ) - 1; }
 
-    //________________________________________________________________
-    QPair<QRect,Qt::Alignment> Decoration::captionRect() const
-    {
+	//________________________________________________________________
+	QPair<QRect,Qt::Alignment> Decoration::captionRect() const
+	{
 
-            auto c = client().data();
-            const int leftOffset = m_leftButtons->buttons().isEmpty() ?
-                Metrics::TitleBar_SideMargin*settings()->smallSpacing():
-                m_leftButtons->geometry().x() + m_leftButtons->geometry().width() + Metrics::TitleBar_SideMargin*settings()->smallSpacing();
+			auto c = client().data();
+			const int leftOffset = m_leftButtons->buttons().isEmpty() ?
+				Metrics::TitleBar_SideMargin*settings()->smallSpacing():
+				m_leftButtons->geometry().x() + m_leftButtons->geometry().width() + Metrics::TitleBar_SideMargin*settings()->smallSpacing();
 
-            const int rightOffset = m_rightButtons->buttons().isEmpty() ?
-                Metrics::TitleBar_SideMargin*settings()->smallSpacing() :
-                size().width() - m_rightButtons->geometry().x() + Metrics::TitleBar_SideMargin*settings()->smallSpacing();
+			const int rightOffset = m_rightButtons->buttons().isEmpty() ?
+				Metrics::TitleBar_SideMargin*settings()->smallSpacing() :
+				size().width() - m_rightButtons->geometry().x() + Metrics::TitleBar_SideMargin*settings()->smallSpacing();
 
-            const int yOffset = settings()->smallSpacing()*Metrics::TitleBar_TopMargin;
-            const QRect maxRect( leftOffset, yOffset, size().width() - leftOffset - rightOffset, captionHeight() );
+			const int yOffset = settings()->smallSpacing()*Metrics::TitleBar_TopMargin;
+			const QRect maxRect( leftOffset, yOffset, size().width() - leftOffset - rightOffset, captionHeight() );
 
-            switch( m_internalSettings->titleAlignment() )
-            {
-                case InternalSettings::AlignLeft:
-                return qMakePair( maxRect, Qt::AlignVCenter|Qt::AlignLeft );
+			switch( m_internalSettings->titleAlignment() )
+			{
+				case InternalSettings::AlignLeft:
+				return qMakePair( maxRect, Qt::AlignVCenter|Qt::AlignLeft );
 
-                case InternalSettings::AlignRight:
-                return qMakePair( maxRect, Qt::AlignVCenter|Qt::AlignRight );
+				case InternalSettings::AlignRight:
+				return qMakePair( maxRect, Qt::AlignVCenter|Qt::AlignRight );
 
-                case InternalSettings::AlignCenter:
-                return qMakePair( maxRect, Qt::AlignCenter );
+				case InternalSettings::AlignCenter:
+				return qMakePair( maxRect, Qt::AlignCenter );
 
-                default:
-                case InternalSettings::AlignCenterFullWidth:
-                {
+				default:
+				case InternalSettings::AlignCenterFullWidth:
+				{
 
-                    // full caption rect
-                    const QRect fullRect = QRect( 0, yOffset, size().width(), captionHeight() );
-                    QFont f; f.fromString(m_internalSettings->titleBarFont());
-                    QFontMetrics fm(f);
-                    QRect boundingRect( fm.boundingRect( c->caption()) );
+					// full caption rect
+					const QRect fullRect = QRect( 0, yOffset, size().width(), captionHeight() );
+					QFont f; f.fromString(m_internalSettings->titleBarFont());
+					QFontMetrics fm(f);
+					QRect boundingRect( fm.boundingRect( c->caption()) );
 
-                    // text bounding rect
-                    boundingRect.setTop( yOffset );
-                    boundingRect.setHeight( captionHeight() );
-                    boundingRect.moveLeft( ( size().width() - boundingRect.width() )/2 );
+					// text bounding rect
+					boundingRect.setTop( yOffset );
+					boundingRect.setHeight( captionHeight() );
+					boundingRect.moveLeft( ( size().width() - boundingRect.width() )/2 );
 
-                    if( boundingRect.left() < leftOffset ) return qMakePair( maxRect, Qt::AlignVCenter|Qt::AlignLeft );
-                    else if( boundingRect.right() > size().width() - rightOffset ) return qMakePair( maxRect, Qt::AlignVCenter|Qt::AlignRight );
-                    else return qMakePair(fullRect, Qt::AlignCenter);
+					if( boundingRect.left() < leftOffset ) return qMakePair( maxRect, Qt::AlignVCenter|Qt::AlignLeft );
+					else if( boundingRect.right() > size().width() - rightOffset ) return qMakePair( maxRect, Qt::AlignVCenter|Qt::AlignRight );
+					else return qMakePair(fullRect, Qt::AlignCenter);
 
-                }
+				}
 
-            }
-    }
+			}
+	}
 
-    //________________________________________________________________
-    void Decoration::createShadow()
-    {
-        updateShadow();
-    }
+	//________________________________________________________________
+	void Decoration::createShadow()
+	{
+		updateShadow();
+	}
 
-    //_________________________________________________________________
-    void Decoration::createSizeGrip()
-    {
+	//_________________________________________________________________
+	void Decoration::createSizeGrip()
+	{
 
-        // do nothing if size grip already exist
-        if( m_sizeGrip ) return;
+		// do nothing if size grip already exist
+		if( m_sizeGrip ) return;
 
-        #if BREEZE_HAVE_X11
-        if( !QX11Info::isPlatformX11() ) return;
+		#if BREEZE_HAVE_X11
+		if( !QX11Info::isPlatformX11() ) return;
 
-        // access client
-        auto c = client().data();
-        if( !c ) return;
+		// access client
+		auto c = client().data();
+		if( !c ) return;
 
-        if( c->windowId() != 0 )
-        {
-            m_sizeGrip = new SizeGrip( this );
-            connect( c, &KDecoration2::DecoratedClient::maximizedChanged, this, &Decoration::updateSizeGripVisibility );
-            connect( c, &KDecoration2::DecoratedClient::shadedChanged, this, &Decoration::updateSizeGripVisibility );
-            connect( c, &KDecoration2::DecoratedClient::resizeableChanged, this, &Decoration::updateSizeGripVisibility );
-        }
-        #endif
+		if( c->windowId() != 0 )
+		{
+			m_sizeGrip = new SizeGrip( this );
+			connect( c, &KDecoration2::DecoratedClient::maximizedChanged, this, &Decoration::updateSizeGripVisibility );
+			connect( c, &KDecoration2::DecoratedClient::shadedChanged, this, &Decoration::updateSizeGripVisibility );
+			connect( c, &KDecoration2::DecoratedClient::resizeableChanged, this, &Decoration::updateSizeGripVisibility );
+		}
+		#endif
 
-    }
+	}
 
-    //_________________________________________________________________
-    void Decoration::deleteSizeGrip()
-    {
-        if( m_sizeGrip )
-        {
-            m_sizeGrip->deleteLater();
-            m_sizeGrip = nullptr;
-        }
-    }
+	//_________________________________________________________________
+	void Decoration::deleteSizeGrip()
+	{
+		if( m_sizeGrip )
+		{
+			m_sizeGrip->deleteLater();
+			m_sizeGrip = nullptr;
+		}
+	}
 
 } // namespace
 
