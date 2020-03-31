@@ -815,22 +815,13 @@ void Button::drawIconMauiStyle( QPainter *painter ) const
         */
     painter->translate( geometry().topLeft() );
 
-    const qreal width( m_iconSize.width() );
+    const qreal width( 22 );
     painter->scale( width/20, width/20 );
     painter->translate( 1, 1 );
 
-    // render background
-
-    //        if( backgroundColor.isValid() )
-    //        {
-    //            painter->setPen( Qt::NoPen );
-    //            painter->setBrush( backgroundColor );
-
-    //           painter->drawRoundRect(QRect(0,0,18,18),30,30);
-    //        }
-
     // render mark
     auto d = qobject_cast<Decoration*>( decoration() );
+    bool inactiveWindow( d && !d->client().data()->isActive() );    
     const QColor backgroundColor = d->titleBarColor();
     const QColor foregroundColor = d->fontColor();
     const auto getPen = [=](const QColor &color) -> QPen
@@ -840,20 +831,91 @@ void Button::drawIconMauiStyle( QPainter *painter ) const
         pen.setWidthF( 1.7*qMax((qreal)1.0, 20/width ));
         return pen;
     };
+    
+    const auto backgroundStateColor = [&](const QColor &baseColor) -> QColor 
+    {
+        if(inactiveWindow && !isPressed())
+        {
+            return QColor("transparent");
+            
+        }else if(inactiveWindow && isPressed())
+        {
+            return foregroundColor;
+        }
+        
+        if(isHovered())
+        {
+            return QColor("transparent");
+        }else
+        {
+            return baseColor;
+        }  
+    };
+    
+    const auto iconStateColor = [&](const QColor &baseColor) -> QColor 
+    {               
+        if(inactiveWindow)
+        {
+            if(!isHovered() && !isPressed())
+            {
+                return foregroundColor;
+                
+            } else if(isHovered() && !isPressed())
+            {
+                return foregroundColor.darker(150);
+                
+            } else
+            {
+                return QColor("white");                
+            }        
+        }else
+        {
+            if(isHovered())
+            {
+                return baseColor;
+            }else
+            {
+                return QColor("white");
+            } 
+        }  
+    };
+    
+    const auto borderStateColor = [&](const QColor &baseColor) -> QColor 
+    {             
+        if(inactiveWindow)
+        {
+            if(isHovered() || isPressed())
+            {
+                return foregroundColor.darker(150);
+                
+            } else
+            {
+                return foregroundColor;                
+            }        
+        }else
+        {
+            if(isPressed())
+            {
+                return baseColor.darker(150);
+            }else
+            {
+                return baseColor.darker(130);
+            } 
+        }  
+    };
 
     switch( type() )
-    {
-
+    {        
         case DecorationButtonType::Close:
         {
             QColor closeColor = "#f06292";
-            painter->setBrush( QBrush(isHovered() ? backgroundColor : closeColor) );
-            QPen pen(closeColor.darker(130));
+            painter->setBrush( backgroundStateColor(closeColor) );
+            QPen pen( borderStateColor(closeColor) );
             pen.setJoinStyle( Qt::RoundJoin );
             painter->setPen(pen);
             painter->drawEllipse( QRectF( 2, 2, 14, 14 ) );
 
-            painter->setPen(getPen(isHovered() ? closeColor : QColor("white")));
+            painter->setPen(getPen( iconStateColor(closeColor) ));
             painter->drawLine( QPointF( 7, 7 ), QPointF( 11, 11 ) );
             painter->drawLine( QPointF( 7, 11 ), QPointF( 11, 7 ) );
             break;
@@ -862,8 +924,8 @@ void Button::drawIconMauiStyle( QPainter *painter ) const
         case DecorationButtonType::Maximize:
         {
             QColor maximizeColor = "#42a5f5";
-            painter->setBrush( QBrush(QBrush(isHovered() ? backgroundColor : maximizeColor) ) );
-            QPen pen(maximizeColor.darker(130));
+            painter->setBrush( backgroundStateColor(maximizeColor) );
+            QPen pen( borderStateColor(maximizeColor) );
             pen.setJoinStyle( Qt::RoundJoin );
             painter->setPen(pen);
             painter->drawEllipse( QRectF( 2, 2, 14, 14 ) );
@@ -873,17 +935,17 @@ void Button::drawIconMauiStyle( QPainter *painter ) const
             path.lineTo (12, 11);
             path.lineTo (9, 7);
             path.lineTo (6, 11);
-            auto border = getPen(isHovered() ? maximizeColor : QColor("white"));
+            auto border = getPen( iconStateColor(maximizeColor) );
             border.setWidth(1);
             painter->strokePath(path, border);
-            painter->fillPath (path, QBrush (isHovered() ? maximizeColor : QColor("white")));
+            painter->fillPath (path, iconStateColor(maximizeColor));
             break;
         }
         case DecorationButtonType::Minimize:
         {
             QColor minimizeColor = "#4dd0e1";
-            painter->setBrush( QBrush(QBrush(isHovered() ? backgroundColor : minimizeColor) ) );
-            QPen pen(minimizeColor.darker(130));
+            painter->setBrush( backgroundStateColor(minimizeColor) );
+            QPen pen( borderStateColor(minimizeColor) );
             pen.setJoinStyle( Qt::RoundJoin );
             painter->setPen(pen);
             painter->drawEllipse( QRectF( 2, 2, 14, 14 ) );
@@ -893,10 +955,10 @@ void Button::drawIconMauiStyle( QPainter *painter ) const
             path.lineTo (12, 8);
             path.lineTo (9, 12);
             path.lineTo (6, 8);
-            auto border = getPen(isHovered() ? minimizeColor : QColor("white"));
+            auto border = getPen( iconStateColor(minimizeColor) );
             border.setWidth(1);
             painter->strokePath(path, border);
-            painter->fillPath (path, QBrush (isHovered() ? minimizeColor : QColor("white")));
+            painter->fillPath (path, iconStateColor(minimizeColor));
             break;
         }
 
