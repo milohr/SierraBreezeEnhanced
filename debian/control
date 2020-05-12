@@ -1,0 +1,12 @@
+Source: nx-window-deco
+Section: KDE
+Priority: optional
+Maintainer: Uri Herrera <uri_herrera@nxos.org>
+Build-Depends: debhelper (>=9), cmake, extra-cmake-modules, libkf5i18n-dev, plasma-framework-dev, libkf5windowsystem-dev
+Standards-Version: 3.9.6
+
+Package: nx-window-deco
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, plasma-pa
+Description: A fork of SierraBreezeEnhanced to replace the Nomad Aurorae window decoration.
+ Window decoration for Nitrux.
