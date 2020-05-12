@@ -24,6 +24,7 @@
 #include <KColorUtils>
 #include <QFileInfo>
 #include <QPainter>
+#include <QDebug>
 
 namespace Breeze
 {
@@ -905,7 +906,7 @@ void Button::drawIconMauiStyle( QPainter *painter ) const
     };
 
     switch( type() )
-    {        
+    {
         case DecorationButtonType::Close:
         {
             QColor closeColor = "#f06292";
@@ -923,22 +924,44 @@ void Button::drawIconMauiStyle( QPainter *painter ) const
 
         case DecorationButtonType::Maximize:
         {
-            QColor maximizeColor = "#42a5f5";
-            painter->setBrush( backgroundStateColor(maximizeColor) );
-            QPen pen( borderStateColor(maximizeColor) );
-            pen.setJoinStyle( Qt::RoundJoin );
-            painter->setPen(pen);
-            painter->drawEllipse( QRectF( 2, 2, 14, 14 ) );
+            if (!d->client().data()->isMaximized()) {
+                QColor maximizeColor = "#42a5f5";
+                painter->setBrush( backgroundStateColor(maximizeColor) );
+                QPen pen( borderStateColor(maximizeColor) );
+                pen.setJoinStyle( Qt::RoundJoin );
+                painter->setPen(pen);
+                painter->drawEllipse( QRectF( 2, 2, 14, 14 ) );
 
-            QPainterPath path;
-            path.moveTo (6, 11);
-            path.lineTo (12, 11);
-            path.lineTo (9, 7);
-            path.lineTo (6, 11);
-            auto border = getPen( iconStateColor(maximizeColor) );
-            border.setWidth(1);
-            painter->strokePath(path, border);
-            painter->fillPath (path, iconStateColor(maximizeColor));
+                QPainterPath path;
+                path.moveTo (6, 11);
+                path.lineTo (12, 11);
+                path.lineTo (9, 7);
+                path.lineTo (6, 11);
+                auto border = getPen( iconStateColor(maximizeColor) );
+                border.setWidth(1);
+                painter->strokePath(path, border);
+                painter->fillPath (path, iconStateColor(maximizeColor));
+            } else {
+                QColor restoreColor = "#9575cd";
+                QColor restorBorderColor = "#7e57c2";
+                painter->setBrush( backgroundStateColor(restoreColor) );
+                QPen pen( borderStateColor(restorBorderColor) );
+                pen.setJoinStyle( Qt::RoundJoin );
+                painter->setPen(pen);
+                painter->drawEllipse( QRectF( 2, 2, 14, 14 ) );
+
+                QPainterPath path;
+                path.moveTo (9, 5);
+                path.lineTo (13, 9);
+                path.lineTo (9, 13);
+                path.lineTo (5, 9);
+                path.lineTo (9, 5);
+                auto border = getPen( iconStateColor(restorBorderColor) );
+                border.setWidth(1);
+                painter->strokePath(path, border);
+                painter->fillPath (path, iconStateColor(restoreColor));
+            }
+
             break;
         }
         case DecorationButtonType::Minimize:
