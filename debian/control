@@ -7,6 +7,6 @@ Standards-Version: 3.9.6
 
 Package: nx-window-deco
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, plasma-pa
+Depends: ${shlibs:Depends}, ${misc:Depends}, kwin
 Description: A fork of SierraBreezeEnhanced to replace the Nomad Aurorae window decoration.
  Window decoration for Nitrux.
