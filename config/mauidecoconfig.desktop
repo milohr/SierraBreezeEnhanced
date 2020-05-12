@@ -8,8 +8,8 @@ X-KDE-Library=org.kde.kdecoration2/mauideco
 X-KDE-PluginKeyword=kcmodule
 X-KDE-ParentApp=kcontrol
 X-KDE-Weight=60
-X-KDE-PluginInfo-Name=MauiDeco
+X-KDE-PluginInfo-Name=Nitrux
 
-Name=MauiDeco
+Name=Nitrux
 Comment=Modify the appearance of window decorations
 X-KDE-Keywords=mauideco,decoration
