@@ -1,4 +1,4 @@
-nx-window-deco (0.0.1) nitrux; urgency=medium
+nx-window-deco (0.0.2) nitrux; urgency=medium
 
   * Change the display name of the decoration.
 
