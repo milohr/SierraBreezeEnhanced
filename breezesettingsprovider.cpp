@@ -75,7 +75,7 @@ namespace Breeze
         QString className;
 
         // get the client
-        auto client = decoration->client().data();
+        auto client = decoration->client().toStrongRef().data();
 
         foreach( auto internalSettings, m_exceptions )
         {
@@ -85,6 +85,14 @@ namespace Breeze
 
             // discard exceptions with empty exception pattern
             if( internalSettings->exceptionPattern().isEmpty() ) continue;
+
+            if (internalSettings->isDialog())
+            {
+              KWindowInfo info(client->windowId(), NET::WMWindowType);
+              if (info.valid() && info.windowType(NET::NormalMask | NET::DialogMask) != NET::Dialog) {
+                continue;
+              }
+            }
 
             /*
             decide which value is to be compared
