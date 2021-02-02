@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -xe
+
 apt -qq update
 apt -qq -yy install equivs curl git wget gnupg2
 
@@ -13,7 +15,6 @@ apt-key adv --keyserver keyserver.ubuntu.com --recv-keys \
 apt -qq update
 
 ### Install Dependencies
-apt -qq -yy dist-upgrade
 DEBIAN_FRONTEND=noninteractive apt -qq -yy install devscripts lintian build-essential automake autotools-dev equivs
 mk-build-deps -i -t "apt-get --yes" -r
 
